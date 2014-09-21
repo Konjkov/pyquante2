@@ -3,6 +3,7 @@ from numpy import array
 from pyquante2 import pgbf,cgbf
 from pyquante2.cone import S,T,V
 from pyquante2.ctwo import ERI,ERI_hgp,vrr,vrr_recursive
+from pyquante2.clibint import ERI as ERI_libint
 from pyquante2.ints.hgp import vrr as pyvrr
 s = pgbf(1)
 s2 = cgbf(exps=[1],coefs=[1])
@@ -23,6 +24,11 @@ class test_cython(unittest.TestCase):
         self.assertAlmostEqual(ERI_hgp(s,s,s,s),1.1283791671)
         self.assertAlmostEqual(ERI_hgp(s2,s2,s2,s2),1.1283791671)
         self.assertAlmostEqual(ERI_hgp(s2,s2,s3,s3),0.84270079)
+    def test_ERI_libint(self):
+        #self.assertAlmostEqual(ERI_libint(s,s,s,s).build_eri(),1.1283791671)
+        self.assertAlmostEqual(ERI_libint(s2,s2,s2,s2).build_eri(),1.1283791671)
+        self.assertAlmostEqual(ERI_libint(s2,s2,s3,s3).build_eri(),0.84270079)
+
 
     def test_vrr(self):
         zero = array([0,0,0],'d')

@@ -4,7 +4,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 
 try:
-    from Cython.Distutils import build_ext
+    from Cython.Build import cythonize
 except ImportError:
     use_cython = False
 else:
@@ -32,8 +32,12 @@ if use_cython:
         Extension("pyquante2.cutils",["cython/cutils.pyx"]),
         Extension("pyquante2.cone",["cython/cone.pyx","cython/cints.c"]),
         Extension("pyquante2.ctwo",["cython/ctwo.pyx","cython/cints.c","cython/chgp.c"]),
+        Extension("pyquante2.clibint", ["cython/clibint.pyx"],
+                  include_dirs=['/usr/include/libint', '/usr/include/libderiv', '/usr/include/libr12'],
+                  libraries=['int', 'deriv', 'r12'],
+                  library_dirs=['/usr/lib'],
+              )
         ]
-    cmdclass.update({'build_ext': build_ext})
 else:
     ext_modules += [
         Extension("pyquante2.cutils",["cython/cutils.c"]),
@@ -64,6 +68,5 @@ setup(name='pyquante2',
                 'pyquante2.viewer',
                 ],
       package_data={'pyquante2.basis': ['libraries/*']},
-      cmdclass = cmdclass,
-      ext_modules = ext_modules,
+      ext_modules = cythonize(ext_modules),
       )
