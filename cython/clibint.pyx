@@ -1,3 +1,5 @@
+import numpy as np
+cimport numpy as np
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from libc.math cimport exp, pow, sqrt, M_PI
 from clibint cimport *
@@ -18,6 +20,11 @@ cdef double vec_dist2(double a[3], double b[3]):
 
 
 cdef double Fm(int m, double x): # (13)
+    """Reference: B.A. Mamedov, Journal of Mathematical Chemistry July 2004,
+       Volume 36, Issue 3, pp 301-306.
+       On the Evaluation of Boys Functions Using Downward Recursion Relation.
+       DOI 10.1023/B:JOMC.0000044226.49921.f5
+    """
     cdef int k
     cdef double sum, current
     if (x<35.0):
@@ -32,17 +39,33 @@ cdef double Fm(int m, double x): # (13)
     else:
         current = sqrt(M_PI/x)/2.0
         for k in range(m):
-          current = ((2*k-1)*current - exp(-x))/(2*x)
+          current = ((2*k+1)*current - exp(-x))/(2*x)
         return current
 
 
-cdef int fact2(int k):
-    cdef int i, result
-    result = 1
-    for i in range(1, k+1, 2):
-        result *= i
-    return result
+cdef double Norm(double alpha, int l, int m , int n): # normalization_constant (2)
+    numerator = pow(2, 2 * (l + m + n) + 1.5) * pow(alpha, l + m + n + 1.5)
+    denominator = fact2(2 * l - 1) * fact2(2 * m - 1) * fact2(2 * n - 1) * M_PI * sqrt(M_PI)
+    return sqrt(numerator/denominator)
 
+
+cdef double fact2(int k):
+    cdef double *fact2 = [3,
+                          3*5,
+                          3*5*7,
+                          3*5*7*9,
+                          3*5*7*9*11,
+                          3*5*7*9*11*13,
+                          3*5*7*9*11*13*15,
+                          3*5*7*9*11*13*15*17,
+                          3*5*7*9*11*13*15*17*19,
+                          3*5*7*9*11*13*15*17*19*21]
+    if k>21:
+        raise ValueError("k!! not implemented for k>21")
+    elif k>1:
+        return fact2[(k-3)/2]
+    else:
+        return 1.0
 
 cdef class CGBF:
     cdef:
@@ -76,12 +99,17 @@ cdef class Libint:
         int memory_allocated, memory_required, max_num_prim_comb, max_am
         CGBF a, b, c, d
 
-    def __cinit__(self, CGBF cgbf_a, CGBF cgbf_b, CGBF cgbf_c, CGBF cgbf_d):
-        self.a = cgbf_a
-        self.b = cgbf_b
-        self.c = cgbf_c
-        self.d = cgbf_d
-
+    def __cinit__(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+        self.a = CGBF(cgbf_a)
+        self.b = CGBF(cgbf_b)
+        self.c = CGBF(cgbf_c)
+        self.d = CGBF(cgbf_d)
+        if self.b.lambda_n > self.a.lambda_n:
+            raise ValueError("<ab|cd> violate Libint angular momentum permission: lambda(a)>=lambda(b)")
+        if self.d.lambda_n > self.c.lambda_n:
+            raise ValueError("<ab|cd> violate Libint angular momentum permission: lambda(c)>=lambda(d)")
+        if self.a.lambda_n + self.b.lambda_n > self.c.lambda_n + self.d.lambda_n:
+            raise ValueError("<ab|cd> violate Libint angular momentum permission: lambda(c)+lambda(d)>=lambda(a)+lambda(b)")
         init_libint_base()
         self.max_num_prim_comb = self.a.alpha_len * self.b.alpha_len * self.c.alpha_len * self.d.alpha_len
         self.max_am = max(self.a.lambda_n, self.b.lambda_n, self.c.lambda_n, self.d.lambda_n)
@@ -97,12 +125,6 @@ cdef class Libint:
                     for l in range(self.d.alpha_len):
                         self.libint_data.PrimQuartet[primitive_number] = self.compute_primitive_data(i, j, k, l)
                         primitive_number += 1
-
-    cdef double N(self, double alpha, int l, int m , int n): # normalization_constant (2)
-        cdef double nominator, denominator
-        numerator = pow(2, 2 * (l + m + n) + 1.5) * pow(alpha, l + m + n + 1.5)
-        denominator = fact2(2 * l - 1) * fact2(2 * m - 1) * fact2(2 * n - 1) * pow(M_PI, 1.5)
-        return sqrt(numerator/denominator)
 
     cdef prim_data compute_primitive_data(self, int i, int j, int k, int l):
         cdef:
@@ -152,10 +174,10 @@ cdef class Libint:
         pdata.oo2p = 1.0 / (2 * rho)
         #pdata.ss_r12_ss = 0.0 # lib12
 
-        Ca = self.a.coef[i] * self.N(self.a.alpha[i], self.a.lambda_n, 0, 0) # (4)
-        Cb = self.b.coef[j] * self.N(self.b.alpha[j], self.b.lambda_n, 0, 0) # (4)
-        Cc = self.c.coef[k] * self.N(self.c.alpha[k], self.c.lambda_n, 0, 0) # (4)
-        Cd = self.d.coef[l] * self.N(self.d.alpha[l], self.d.lambda_n, 0, 0) # (4)
+        Ca = self.a.coef[i] * Norm(self.a.alpha[i], self.a.lambda_n, 0, 0) # (4)
+        Cb = self.b.coef[j] * Norm(self.b.alpha[j], self.b.lambda_n, 0, 0) # (4)
+        Cc = self.c.coef[k] * Norm(self.c.alpha[k], self.c.lambda_n, 0, 0) # (4)
+        Cd = self.d.coef[l] * Norm(self.d.alpha[l], self.d.lambda_n, 0, 0) # (4)
 
         S12 = pow(M_PI / zeta, 1.5) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * vec_dist2(A, B)) # (15)
         S34 = pow(M_PI / eta, 1.5) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * vec_dist2(C, D))   # (16)
@@ -174,6 +196,7 @@ cdef class Libint:
             result = 0.0
             for n in range(self.max_num_prim_comb):
                 result += self.libint_data.PrimQuartet[n].F[0]
+
         else:
             cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
             cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
@@ -183,69 +206,54 @@ cdef class Libint:
             p = ang_mom_index(self.b.N[0], self.b.N[1], self.b.N[2], self.b.lambda_n)
             q = ang_mom_index(self.c.N[0], self.c.N[1], self.c.N[2], self.c.lambda_n)
             r = ang_mom_index(self.d.N[0], self.d.N[1], self.d.N[2], self.d.lambda_n)
-            norm_constant = 1
-            norm_constant *= self.N(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
-            norm_constant *= self.N(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
-            norm_constant *= self.N(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
-            norm_constant *= self.N(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
-            norm_constant /= self.N(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
-            norm_constant /= self.N(self.b.alpha[0], self.b.lambda_n, 0, 0)
-            norm_constant /= self.N(self.c.alpha[0], self.c.lambda_n, 0, 0)
-            norm_constant /= self.N(self.d.alpha[0], self.d.lambda_n, 0, 0)
             ijkl = ((s*cgbf_b_nfunc+p)*cgbf_c_nfunc+q)*cgbf_d_nfunc+r
-            result = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)[ijkl] * norm_constant
+            result = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)[ijkl]
+            norm_constant = 1
+            norm_constant *= Norm(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
+            norm_constant *= Norm(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
+            norm_constant *= Norm(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
+            norm_constant *= Norm(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
+            norm_constant /= Norm(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
+            norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
+            norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
+            norm_constant /= Norm(self.d.alpha[0], self.d.lambda_n, 0, 0)
+            result *= norm_constant
         return result
 
-    cdef double *build_shell(self):
+    def build_shell(self):
         cdef int n, ijkl
         cdef int cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc
         cdef int s, p, q, r
         cdef double norm_constant
-        cdef double result[1]
+        cdef np.ndarray result
 
         if self.max_am==0:
-            result[0] = 0.0
+            result = np.zeros([1], dtype=np.double)
             for n in range(self.max_num_prim_comb):
                 result[0] += self.libint_data.PrimQuartet[n].F[0]
             return result
-        elif self.max_am==1:
-            cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
-            cgbf_c_nfunc = (self.c.lambda_n+1)*(self.c.lambda_n+2)/2
-            cgbf_d_nfunc = (self.d.lambda_n+1)*(self.d.lambda_n+2)/2
-            return build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)
         else:
             cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
             cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
             cgbf_c_nfunc = (self.c.lambda_n+1)*(self.c.lambda_n+2)/2
             cgbf_d_nfunc = (self.d.lambda_n+1)*(self.d.lambda_n+2)/2
+            result = np.zeros([cgbf_a_nfunc*cgbf_b_nfunc*cgbf_c_nfunc*cgbf_d_nfunc], dtype=np.double)
             for s in range(cgbf_a_nfunc):
                 for p in range(cgbf_b_nfunc):
                     for q in range(cgbf_c_nfunc):
                         for r in range(cgbf_d_nfunc):
                             ijkl = ((s*cgbf_b_nfunc+p)*cgbf_c_nfunc+q)*cgbf_d_nfunc+r
                             norm_constant = 1
-                            norm_constant *= self.N(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
-                            norm_constant *= self.N(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
-                            norm_constant *= self.N(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
-                            norm_constant *= self.N(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
-                            norm_constant /= self.N(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
-                            norm_constant /= self.N(self.b.alpha[0], self.b.lambda_n, 0, 0)
-                            norm_constant /= self.N(self.c.alpha[0], self.c.lambda_n, 0, 0)
-                            norm_constant /= self.N(self.d.alpha[0], self.d.lambda_n, 0, 0)
+                            norm_constant *= Norm(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
+                            norm_constant *= Norm(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
+                            norm_constant *= Norm(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
+                            norm_constant *= Norm(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
+                            norm_constant /= Norm(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
+                            norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
+                            norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
+                            norm_constant /= Norm(self.d.alpha[0], self.d.lambda_n, 0, 0)
                             result[ijkl] = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)[ijkl] * norm_constant
             return result
 
     def __dealloc__(self):
         free_libint(&self.libint_data)
-
-
-def ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
-
-    if cgbf_b.powers[0] + cgbf_b.powers[1] + cgbf_b.powers[2] > cgbf_a.powers[0] + cgbf_a.powers[1] + cgbf_a.powers[2]:
-        cgbf_a, cgbf_b = cgbf_b, cgbf_a
-    if cgbf_d.powers[0] + cgbf_d.powers[1] + cgbf_d.powers[2] > cgbf_c.powers[0] + cgbf_c.powers[1] + cgbf_c.powers[2]:
-        cgbf_c, cgbf_d = cgbf_d, cgbf_c
-    if cgbf_a.powers[0] + cgbf_a.powers[1] + cgbf_a.powers[2] + cgbf_b.powers[0] + cgbf_b.powers[1] + cgbf_b.powers[2] > \
-       cgbf_c.powers[0] + cgbf_c.powers[1] + cgbf_c.powers[2] + cgbf_d.powers[0] + cgbf_d.powers[1] + cgbf_d.powers[2]:
-        cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
-    return Libint(CGBF(cgbf_a), CGBF(cgbf_b), CGBF(cgbf_c), CGBF(cgbf_d)).build_eri()
