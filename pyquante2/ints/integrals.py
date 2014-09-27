@@ -7,6 +7,8 @@ except:
     print("Couldn't find cython int routine")
     from pyquante2.ints.hgp import ERI_hgp as ERI
 
+from pyquante2.clibint import Libint
+
 try:
     from pyquante2.cone import S,T,V
 except:
@@ -110,6 +112,35 @@ class twoe_integrals(object):
     def get_j(self,D): return np.einsum('kl,ijkl->ij',D,self._2e_ints)
     def get_k(self,D): return np.einsum('ij,ikjl->kl',D,self._2e_ints)
     def get_2jk(self,D): return 2*self.get_j(D)-self.get_k(D)
+
+
+class libint_twoe_integrals(twoe_integrals):
+    """
+    >>> from pyquante2.geo.samples import h
+    >>> from pyquante2.basis.basisset import basisset
+    >>> bfs = basisset(h,'sto-3g')
+    >>> twoe_integrals(bfs)
+    array([ 0.77460594])
+    """
+    def __init__(self,bfs):
+        nbf = self.nbf = len(bfs)
+        self._2e_ints = np.empty((nbf,nbf,nbf,nbf),'d')
+        ints = self._2e_ints
+
+        for i,j,k,l in iiterator(nbf):
+            ints[i,j,k,l] = ints[j,i,k,l] = ints[i,j,l,k] = ints[j,i,l,k] = \
+                            ints[k,l,i,j] = ints[l,k,i,j] = ints[k,l,j,i] = \
+                            ints[l,k,j,i] = self.ERI_libint(bfs[i],bfs[j],bfs[k],bfs[l])
+
+    def ERI_libint(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+        if sum(cgbf_b.powers) > sum(cgbf_a.powers):
+            cgbf_a, cgbf_b = cgbf_b, cgbf_a
+        if sum(cgbf_d.powers) > sum(cgbf_c.powers):
+            cgbf_c, cgbf_d = cgbf_d, cgbf_c
+        if sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers):
+            cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
+        return Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_eri()
+
 
 class onee_integrals(object):
     """
