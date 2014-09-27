@@ -11,7 +11,7 @@ class SCFIterator(object):
             self.c = c
         self.maxiters = maxiters
         self.tol = tol
-        
+
         self.converged = False
         self.iterations = 0
         return

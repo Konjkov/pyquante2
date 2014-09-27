@@ -1,16 +1,19 @@
 from pyquante2.grid.grid import grid
-from pyquante2.ints.integrals import onee_integrals,twoe_integrals
+from pyquante2.ints.integrals import onee_integrals,twoe_integrals,libint_twoe_integrals
 from pyquante2.utils import trace2, geigh
 from pyquante2.scf.iterators import SCFIterator,USCFIterator,AveragingIterator
 import numpy as np
 
 class hamiltonian(object):
     name = 'abstract'
-    def __init__(self,geo,bfs):
+    def __init__(self, geo, bfs, libint=False):
         self.geo = geo
         self.bfs = bfs
         self.i1 = onee_integrals(bfs,geo)
-        self.i2 = twoe_integrals(bfs)
+        if libint:
+            self.i2 = libint_twoe_integrals(bfs)
+        else:
+            self.i2 = twoe_integrals(bfs)
         self.energies = []
         self.energy = 0
         self.converged = False
@@ -103,7 +106,6 @@ class rdft(rhf):
         self.energy = self.geo.nuclear_repulsion()
         H = self.i1.T + self.i1.V
         self.energy += trace2(H,D)
-
         J = self.i2.get_2j(D)
         H = H + J
 
@@ -129,7 +131,7 @@ class rohf(rhf):
         self.norbsh = norbsh
         self.fi = fi
 
-        
+
 class uhf(hamiltonian):
     """
     >>> from pyquante2.geo.samples import oh
