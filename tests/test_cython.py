@@ -24,11 +24,6 @@ class test_cython(unittest.TestCase):
         self.assertAlmostEqual(ERI_hgp(s,s,s,s),1.1283791671)
         self.assertAlmostEqual(ERI_hgp(s2,s2,s2,s2),1.1283791671)
         self.assertAlmostEqual(ERI_hgp(s2,s2,s3,s3),0.84270079)
-    def test_ERI_libint(self):
-        #self.assertAlmostEqual(ERI_libint(s,s,s,s).build_eri(),1.1283791671)
-        self.assertAlmostEqual(ERI_libint(s2,s2,s2,s2).build_eri(),1.1283791671)
-        self.assertAlmostEqual(ERI_libint(s2,s2,s3,s3).build_eri(),0.84270079)
-
 
     def test_vrr(self):
         zero = array([0,0,0],'d')
