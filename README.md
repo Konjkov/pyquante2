@@ -35,6 +35,8 @@ can be viewed as a [gist](https://gist.github.com/rpmuller/5745404) or
 ## Requirements:
 * Python 2.7
 * Numpy >= 1.7
+* PyParsing 2.0.2 for basis set files parsing
+* Cython 0.21
 * The test suites run without matplotlib or pyglet, but there is extra
   functionality using both.
 
@@ -42,12 +44,12 @@ can be viewed as a [gist](https://gist.github.com/rpmuller/5745404) or
 * Huzinaga and HGP integral methods, both in Python and with Cython wrappers to C
 * RHF, UHF wave functions
 * MP2 perturbation theory
-* A limited number of basis sets (STO-3G, 6-31G, 6-31G**)
+* Large limited number of basis sets available from 
+  module uses basis sets downloaded from https://bse.pnl.gov/bse/portal
 * Line and contour plotting
 * Basic IPython notebook support for some objects
 
 Feel free to fork this if it interests you. The PyQuante code is still
 around, so I'm not rushing through the process, I'm just taking as
 much time as I feel I need to do this properly.
-
 
