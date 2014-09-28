@@ -5,9 +5,9 @@ from libc.math cimport exp, pow, sqrt, M_PI
 from clibint cimport *
 
 
-cdef int ang_mom_index(int l, int m ,int n, int max_am):
-    cdef int i
-    i = 0
+cdef int ang_mom_index(int l, int m ,int n):
+    cdef int i = 0
+    max_am = l + m + n
     for a_nx in range(max_am+1):
         for a_ny in range(a_nx+1):
             if (max_am-a_nx)==l and (a_nx-a_ny)==m and a_ny==n:
@@ -196,28 +196,28 @@ cdef class Libint:
             result = 0.0
             for n in range(self.max_num_prim_comb):
                 result += self.libint_data.PrimQuartet[n].F[0]
-
         else:
             cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
             cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
             cgbf_c_nfunc = (self.c.lambda_n+1)*(self.c.lambda_n+2)/2
             cgbf_d_nfunc = (self.d.lambda_n+1)*(self.d.lambda_n+2)/2
-            s = ang_mom_index(self.a.N[0], self.a.N[1], self.a.N[2], self.a.lambda_n)
-            p = ang_mom_index(self.b.N[0], self.b.N[1], self.b.N[2], self.b.lambda_n)
-            q = ang_mom_index(self.c.N[0], self.c.N[1], self.c.N[2], self.c.lambda_n)
-            r = ang_mom_index(self.d.N[0], self.d.N[1], self.d.N[2], self.d.lambda_n)
+            s = ang_mom_index(self.a.N[0], self.a.N[1], self.a.N[2])
+            p = ang_mom_index(self.b.N[0], self.b.N[1], self.b.N[2])
+            q = ang_mom_index(self.c.N[0], self.c.N[1], self.c.N[2])
+            r = ang_mom_index(self.d.N[0], self.d.N[1], self.d.N[2])
             ijkl = ((s*cgbf_b_nfunc+p)*cgbf_c_nfunc+q)*cgbf_d_nfunc+r
             result = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)[ijkl]
-            norm_constant = 1
-            norm_constant *= Norm(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
-            norm_constant *= Norm(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
-            norm_constant *= Norm(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
-            norm_constant *= Norm(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
-            norm_constant /= Norm(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
-            norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
-            norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
-            norm_constant /= Norm(self.d.alpha[0], self.d.lambda_n, 0, 0)
-            result *= norm_constant
+            if self.max_am>1:
+                norm_constant = 1.0
+                norm_constant *= Norm(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
+                norm_constant *= Norm(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
+                norm_constant *= Norm(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
+                norm_constant *= Norm(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
+                norm_constant /= Norm(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
+                norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
+                norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
+                norm_constant /= Norm(self.d.alpha[0], self.d.lambda_n, 0, 0)
+                result *= norm_constant
         return result
 
     def build_shell(self):
@@ -228,32 +228,43 @@ cdef class Libint:
         cdef np.ndarray result
 
         if self.max_am==0:
-            result = np.zeros([1], dtype=np.double)
+            result = np.zeros(shape=(1,1,1,1), dtype=np.double)
             for n in range(self.max_num_prim_comb):
-                result[0] += self.libint_data.PrimQuartet[n].F[0]
+                result[0,0,0,0] += self.libint_data.PrimQuartet[n].F[0]
             return result
         else:
             cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
             cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
             cgbf_c_nfunc = (self.c.lambda_n+1)*(self.c.lambda_n+2)/2
             cgbf_d_nfunc = (self.d.lambda_n+1)*(self.d.lambda_n+2)/2
-            result = np.zeros([cgbf_a_nfunc*cgbf_b_nfunc*cgbf_c_nfunc*cgbf_d_nfunc], dtype=np.double)
+            result = np.zeros(shape=(cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc), dtype=np.double)
             for s in range(cgbf_a_nfunc):
                 for p in range(cgbf_b_nfunc):
                     for q in range(cgbf_c_nfunc):
                         for r in range(cgbf_d_nfunc):
                             ijkl = ((s*cgbf_b_nfunc+p)*cgbf_c_nfunc+q)*cgbf_d_nfunc+r
-                            norm_constant = 1
-                            norm_constant *= Norm(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
-                            norm_constant *= Norm(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
-                            norm_constant *= Norm(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
-                            norm_constant *= Norm(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
-                            norm_constant /= Norm(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
-                            norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
-                            norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
-                            norm_constant /= Norm(self.d.alpha[0], self.d.lambda_n, 0, 0)
-                            result[ijkl] = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)[ijkl] * norm_constant
+                            norm_constant = 1.0
+                            if self.max_am>1:
+                                norm_constant *= Norm(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
+                                norm_constant *= Norm(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
+                                norm_constant *= Norm(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
+                                norm_constant *= Norm(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
+                                norm_constant /= Norm(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
+                                norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
+                                norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
+                                norm_constant /= Norm(self.d.alpha[0], self.d.lambda_n, 0, 0)
+                            result[s,p,q,r] = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)[ijkl] * norm_constant
             return result
 
     def __dealloc__(self):
         free_libint(&self.libint_data)
+
+
+def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+    if sum(cgbf_b.powers) > sum(cgbf_a.powers):
+        cgbf_a, cgbf_b = cgbf_b, cgbf_a
+    if sum(cgbf_d.powers) > sum(cgbf_c.powers):
+        cgbf_c, cgbf_d = cgbf_d, cgbf_c
+    if sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers):
+        cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
+    return Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_eri()

@@ -152,7 +152,7 @@ class PyQuanteAssertions:
 
 
 class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
-    """reference energy obtained fron NWCHEM 6.5"""
+    """reference energies obtained from NWCHEM 6.5"""
     def test_CH4_solver(self):
         """CH4 symmetry Td"""
         bfs = basisset(CH4,'sto-3g')

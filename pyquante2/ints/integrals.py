@@ -7,7 +7,7 @@ except:
     print("Couldn't find cython int routine")
     from pyquante2.ints.hgp import ERI_hgp as ERI
 
-from pyquante2.clibint import Libint
+from pyquante2.clibint import Permutable_ERI
 
 try:
     from pyquante2.cone import S,T,V
@@ -130,16 +130,7 @@ class libint_twoe_integrals(twoe_integrals):
         for i,j,k,l in iiterator(nbf):
             ints[i,j,k,l] = ints[j,i,k,l] = ints[i,j,l,k] = ints[j,i,l,k] = \
                             ints[k,l,i,j] = ints[l,k,i,j] = ints[k,l,j,i] = \
-                            ints[l,k,j,i] = self.ERI_libint(bfs[i],bfs[j],bfs[k],bfs[l])
-
-    def ERI_libint(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
-        if sum(cgbf_b.powers) > sum(cgbf_a.powers):
-            cgbf_a, cgbf_b = cgbf_b, cgbf_a
-        if sum(cgbf_d.powers) > sum(cgbf_c.powers):
-            cgbf_c, cgbf_d = cgbf_d, cgbf_c
-        if sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers):
-            cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
-        return Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_eri()
+                            ints[l,k,j,i] = Permutable_ERI(bfs[i],bfs[j],bfs[k],bfs[l])
 
 
 class onee_integrals(object):
