@@ -2,6 +2,7 @@
 
 from distutils.core import setup
 from distutils.extension import Extension
+import numpy as np
 
 try:
     from Cython.Build import cythonize
@@ -33,7 +34,7 @@ if use_cython:
         Extension("pyquante2.cone",["cython/cone.pyx","cython/cints.c"]),
         Extension("pyquante2.ctwo",["cython/ctwo.pyx","cython/cints.c","cython/chgp.c"]),
         Extension("pyquante2.clibint", ["cython/clibint.pyx"],
-                  include_dirs=['/usr/include/libint', '/usr/include/libderiv', '/usr/include/libr12'],
+                  include_dirs=['/usr/include/libint', '/usr/include/libderiv', '/usr/include/libr12', np.get_include()],
                   libraries=['int', 'deriv', 'r12'],
                   library_dirs=['/usr/lib'],
               )
