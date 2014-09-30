@@ -14,6 +14,17 @@ cdef int ang_mom_index(int l, int m ,int n):
                 return i
             i += 1
 
+cdef int* ang_1(int i, max_am):
+    cdef int ii = 0
+    cdef int result[3]
+    for a_nx in range(max_am+1):
+        for a_ny in range(a_nx+1):
+            if i==ii:
+                result[0] = max_am-a_nx
+                result[1] = a_nx-a_ny
+                result[2] = a_ny
+                return result
+            ii += 1
 
 cdef double vec_dist2(double a[3], double b[3]):
     return (a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) + (a[2]-b[2])*(a[2]-b[2])
@@ -50,12 +61,13 @@ cdef double Norm(double alpha, int l, int m , int n): # normalization_constant (
 
 
 cdef double fact2(int k):
-    cdef double *fact2 = [3,
-                          3*5,
-                          3*5*7,
-                          3*5*7*9,
-                          3*5*7*9*11,
-                          3*5*7*9*11*13,
+    # LIBINT_MAX_AM = 8 (maximum angular momentum + 1)
+    cdef double *fact2 = [3, # D shell
+                          3*5, # F shell
+                          3*5*7, # G shell
+                          3*5*7*9, # H shell
+                          3*5*7*9*11, # I shell
+                          3*5*7*9*11*13, # K shell
                           3*5*7*9*11*13*15,
                           3*5*7*9*11*13*15*17,
                           3*5*7*9*11*13*15*17*19,
@@ -217,6 +229,7 @@ cdef class Libint:
                 norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
                 norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
                 norm_constant /= Norm(self.d.alpha[0], self.d.lambda_n, 0, 0)
+                print norm_constant
                 result *= norm_constant
         return result
 
@@ -226,6 +239,9 @@ cdef class Libint:
         cdef int s, p, q, r
         cdef double norm_constant
         cdef np.ndarray result
+        if self.a.N[1] + self.a.N[2] + self.b.N[1] + self.b.N[2] + \
+           self.c.N[1] + self.c.N[2] + self.d.N[1] + self.d.N[2] >0:
+            raise ValueError("Only first primitive function in a shell permitted")
 
         if self.max_am==0:
             result = np.zeros(shape=(1,1,1,1), dtype=np.double)
@@ -245,10 +261,10 @@ cdef class Libint:
                             ijkl = ((s*cgbf_b_nfunc+p)*cgbf_c_nfunc+q)*cgbf_d_nfunc+r
                             norm_constant = 1.0
                             if self.max_am>1:
-                                norm_constant *= Norm(self.a.alpha[0], self.a.N[0], self.a.N[1], self.a.N[2])
-                                norm_constant *= Norm(self.b.alpha[0], self.b.N[0], self.b.N[1], self.b.N[2])
-                                norm_constant *= Norm(self.c.alpha[0], self.c.N[0], self.c.N[1], self.c.N[2])
-                                norm_constant *= Norm(self.d.alpha[0], self.d.N[0], self.d.N[1], self.d.N[2])
+                                norm_constant *= Norm(self.a.alpha[0], ang_1(s, self.a.N[0])[0], ang_1(s, self.a.N[0])[1], ang_1(s, self.a.N[0])[2])
+                                norm_constant *= Norm(self.b.alpha[0], ang_1(p, self.b.N[0])[0], ang_1(p, self.b.N[0])[1], ang_1(p, self.b.N[0])[2])
+                                norm_constant *= Norm(self.c.alpha[0], ang_1(q, self.c.N[0])[0], ang_1(q, self.c.N[0])[1], ang_1(q, self.c.N[0])[2])
+                                norm_constant *= Norm(self.d.alpha[0], ang_1(r, self.d.N[0])[0], ang_1(r, self.d.N[0])[1], ang_1(r, self.d.N[0])[2])
                                 norm_constant /= Norm(self.a.alpha[0], self.a.lambda_n, 0, 0) # (19)
                                 norm_constant /= Norm(self.b.alpha[0], self.b.lambda_n, 0, 0)
                                 norm_constant /= Norm(self.c.alpha[0], self.c.lambda_n, 0, 0)
@@ -260,11 +276,62 @@ cdef class Libint:
         free_libint(&self.libint_data)
 
 
-def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
-    if sum(cgbf_b.powers) > sum(cgbf_a.powers):
+def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d, ints, i,j,k,l):
+    flag_ab = sum(cgbf_b.powers) > sum(cgbf_a.powers)
+    flag_cd = sum(cgbf_d.powers) > sum(cgbf_c.powers)
+    flag_abcd = sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers)
+
+    if flag_ab:
         cgbf_a, cgbf_b = cgbf_b, cgbf_a
-    if sum(cgbf_d.powers) > sum(cgbf_c.powers):
+    if flag_cd:
         cgbf_c, cgbf_d = cgbf_d, cgbf_c
-    if sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers):
+    if flag_abcd:
         cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
-    return Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_eri()
+
+    ints[i,j,k,l] = ints[j,i,k,l] = ints[i,j,l,k] = ints[j,i,l,k] = \
+                    ints[k,l,i,j] = ints[l,k,i,j] = ints[k,l,j,i] = \
+                    ints[l,k,j,i] = Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_eri()
+    #shell = Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_shell()
+    #ints[i,j,k,l] = ints[j,i,k,l] = ints[i,j,l,k] = ints[j,i,l,k] = \
+    #                ints[k,l,i,j] = ints[l,k,i,j] = ints[k,l,j,i] = \
+    #                ints[l,k,j,i] = \
+    #      shell[ang_mom_index(cgbf_a.powers[0], cgbf_a.powers[1], cgbf_a.powers[2]),
+    #            ang_mom_index(cgbf_b.powers[0], cgbf_b.powers[1], cgbf_b.powers[2]),
+    #            ang_mom_index(cgbf_c.powers[0], cgbf_c.powers[1], cgbf_c.powers[2]),
+    #            ang_mom_index(cgbf_d.powers[0], cgbf_d.powers[1], cgbf_d.powers[2])]
+
+
+def Permutable_Shell(cgbf_a, cgbf_b, cgbf_c, cgbf_d, ints, i,j,k,l):
+    flag_ab = sum(cgbf_b.powers) > sum(cgbf_a.powers)
+    flag_cd = sum(cgbf_d.powers) > sum(cgbf_c.powers)
+    flag_abcd = sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers)
+
+    first_a = cgbf_a.powers[1] + cgbf_a.powers[2] == 0
+    first_b = cgbf_b.powers[1] + cgbf_b.powers[2] == 0
+    first_c = cgbf_c.powers[1] + cgbf_c.powers[2] == 0
+    first_d = cgbf_d.powers[1] + cgbf_d.powers[2] == 0
+    if first_a and first_b and first_c and first_d:
+        if flag_ab:
+            cgbf_a, cgbf_b = cgbf_b, cgbf_a
+        if flag_cd:
+            cgbf_c, cgbf_d = cgbf_d, cgbf_c
+        if flag_abcd:
+            cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
+        shell = Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_shell()
+        if flag_abcd:
+            cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
+            shell = np.swapaxes(shell,0,2)
+            shell = np.swapaxes(shell,1,3)
+        if flag_cd:
+            cgbf_c, cgbf_d = cgbf_d, cgbf_c
+            shell = np.swapaxes(shell,2,3)
+        if flag_ab:
+            cgbf_a, cgbf_b = cgbf_b, cgbf_a
+            shell = np.swapaxes(shell,0,1)
+        for s in range(i, i+(cgbf_a.powers[0]+1)*(cgbf_a.powers[0]+2)/2):
+            for p in range(j, j+(cgbf_b.powers[0]+1)*(cgbf_b.powers[0]+2)/2):
+                for q in range(k, k+(cgbf_c.powers[0]+1)*(cgbf_c.powers[0]+2)/2):
+                    for r in range(l, l+(cgbf_d.powers[0]+1)*(cgbf_d.powers[0]+2)/2):
+                        ints[s,p,q,r] = ints[p,s,q,r] = ints[s,p,r,q] = ints[p,s,r,q] = \
+                        ints[q,r,s,p] = ints[r,q,s,p] = ints[q,r,p,s] = \
+                        ints[r,q,p,s] = shell[s-i,p-j,q-k,r-l]

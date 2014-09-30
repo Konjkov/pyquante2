@@ -7,7 +7,7 @@ except:
     print("Couldn't find cython int routine")
     from pyquante2.ints.hgp import ERI_hgp as ERI
 
-from pyquante2.clibint import Permutable_ERI
+from pyquante2.clibint import Permutable_ERI, Permutable_Shell
 
 try:
     from pyquante2.cone import S,T,V
@@ -127,10 +127,12 @@ class libint_twoe_integrals(twoe_integrals):
         self._2e_ints = np.empty((nbf,nbf,nbf,nbf),'d')
         ints = self._2e_ints
 
+        self._2e_ints_1 = np.empty((nbf,nbf,nbf,nbf),'d')
+        ints_1 = self._2e_ints_1
+
         for i,j,k,l in iiterator(nbf):
-            ints[i,j,k,l] = ints[j,i,k,l] = ints[i,j,l,k] = ints[j,i,l,k] = \
-                            ints[k,l,i,j] = ints[l,k,i,j] = ints[k,l,j,i] = \
-                            ints[l,k,j,i] = Permutable_ERI(bfs[i],bfs[j],bfs[k],bfs[l])
+            #Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l], ints, i,j,k,l)
+            Permutable_Shell(bfs[i], bfs[j], bfs[k], bfs[l], ints, i,j,k,l)
 
 
 class onee_integrals(object):
