@@ -7,7 +7,7 @@ except:
     print("Couldn't find cython int routine")
     from pyquante2.ints.hgp import ERI_hgp as ERI
 
-from pyquante2.clibint import Permutable_ERI, Permutable_Shell
+from pyquante2.clibint import Permutable_ERI
 
 try:
     from pyquante2.cone import S,T,V
@@ -124,15 +124,39 @@ class libint_twoe_integrals(twoe_integrals):
     """
     def __init__(self,bfs):
         nbf = self.nbf = len(bfs)
+        print nbf
         self._2e_ints = np.empty((nbf,nbf,nbf,nbf),'d')
         ints = self._2e_ints
 
-        self._2e_ints_1 = np.empty((nbf,nbf,nbf,nbf),'d')
-        ints_1 = self._2e_ints_1
-
         for i,j,k,l in iiterator(nbf):
-            #Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l], ints, i,j,k,l)
-            Permutable_Shell(bfs[i], bfs[j], bfs[k], bfs[l], ints, i,j,k,l)
+            first_a = bfs[i].powers[1] + bfs[i].powers[2] == 0
+            first_b = bfs[j].powers[1] + bfs[j].powers[2] == 0
+            first_c = bfs[k].powers[1] + bfs[k].powers[2] == 0
+            first_d = bfs[l].powers[1] + bfs[l].powers[2] == 0
+            if first_a and first_b and first_c and first_d:
+                shell = Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l])
+
+                cgbf_a_nfunc = (bfs[i].powers[0]+1)*(bfs[i].powers[0]+2)/2
+                cgbf_b_nfunc = (bfs[j].powers[0]+1)*(bfs[j].powers[0]+2)/2
+                cgbf_c_nfunc = (bfs[k].powers[0]+1)*(bfs[k].powers[0]+2)/2
+                cgbf_d_nfunc = (bfs[l].powers[0]+1)*(bfs[l].powers[0]+2)/2
+
+                for s in range(i, i+cgbf_a_nfunc):
+                    for p in range(j, j+cgbf_b_nfunc):
+                        for q in range(k, k+cgbf_c_nfunc):
+                            for r in range(l, l+cgbf_d_nfunc):
+                                ints[s,p,q,r] = ints[p,s,q,r] = ints[s,p,r,q] = ints[p,s,r,q] = \
+                                ints[q,r,s,p] = ints[r,q,s,p] = ints[q,r,p,s] = \
+                                ints[r,q,p,s] = shell[s-i,p-j,q-k,r-l]
+                """no difference
+                ints[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
+                np.swapaxes(ints,0,1)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
+                np.swapaxes(ints,2,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
+                np.swapaxes(np.swapaxes(ints,0,1),2,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
+                np.swapaxes(np.swapaxes(ints,0,2),1,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
+                np.swapaxes(np.swapaxes(np.swapaxes(ints,0,2),1,3),0,1)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
+                np.swapaxes(np.swapaxes(np.swapaxes(ints,0,2),1,3),2,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
+                np.swapaxes(np.swapaxes(ints,0,3),1,2)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = shell"""
 
 
 class onee_integrals(object):
@@ -207,3 +231,6 @@ def iindex(i,j,k,l):
 
 if __name__ == '__main__':
     import doctest; doctest.testmod()
+
+
+
