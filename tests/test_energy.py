@@ -109,6 +109,25 @@ CrCO6 = molecule([(24,    0.00000000,     0.00000000,     0.00000000),
                   units='Angstrom',
                   name='CrCO6')
 
+C8H8 = molecule([(1,   1.40173963,     1.40173963,     1.40173963),
+                 (6,   0.77867761,     0.77867761,     0.77867761),
+                 (1,   1.40173963,     1.40173963,    -1.40173963),
+                 (6,   0.77867761,     0.77867761,    -0.77867761),
+                 (1,   1.40173963,    -1.40173963,     1.40173963),
+                 (6,   0.77867761,    -0.77867761,     0.77867761),
+                 (1,  -1.40173963,     1.40173963,     1.40173963),
+                 (6,  -0.77867761,     0.77867761,     0.77867761),
+                 (1,   1.40173963,    -1.40173963,    -1.40173963),
+                 (6,   0.77867761,    -0.77867761,    -0.77867761),
+                 (1,  -1.40173963,     1.40173963,    -1.40173963),
+                 (6,  -0.77867761,     0.77867761,    -0.77867761),
+                 (1,  -1.40173963,    -1.40173963,     1.40173963),
+                 (6,  -0.77867761,    -0.77867761,     0.77867761),
+                 (1,  -1.40173963,    -1.40173963,    -1.40173963),
+                 (6,  -0.77867761,    -0.77867761,    -0.77867761)],
+                 units='Angstrom',
+                 name='Cubane')
+
 
 def scf_simple(geo,basisname='sto-3g',maxiter=25,verbose=False):
     bfs = basisset(geo,basisname)
@@ -129,10 +148,10 @@ def scf_simple(geo,basisname='sto-3g',maxiter=25,verbose=False):
     for i in xrange(maxiter):
         D = dmat(U,nocc)
         if verbose: print ("D=\n%s" % D)
-        Eone = trace2(h,D)
+        Eone = 2*trace2(h,D)
         G = i2.get_2jk(D)
+        Etwo = trace2(D,G)
         H = h+G
-        Etwo = trace2(H,D)
         E,U = geigh(H,i1.S)
         Energy = Enuke+Eone+Etwo
         print ("HF: %02d   %10.6f : %10.6f %10.6f %10.6f" % ((i+1),Energy,Enuke,Eone,Etwo))
@@ -164,12 +183,12 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
         """C2H2Cl2 symmetry C2H"""
         self.assertPrecisionEqual(scf_simple(C2H2Cl2)[0], -967.533150327823)
 
-##    def test_C2H2Cl2_solver(self):
-##        """C2H2Cl2 symmetry C2H"""
-##        bfs = basisset(C2H2Cl2,'sto-3g')
-##        solver = rhf(C2H2Cl2,bfs,libint=True)
-##        ens = solver.converge()
-##        self.assertPrecisionEqual(solver.energy, -967.533150327823)
+    def test_C2H2Cl2_solver(self):
+        """C2H2Cl2 symmetry C2H"""
+        bfs = basisset(C2H2Cl2,'sto-3g')
+        solver = rhf(C2H2Cl2,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -967.533150327823)
 
     def test_H2O_4_simple(self):
         """H2O tethramer symmetry S4"""
@@ -183,23 +202,9 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
         """HBr"""
         self.assertPrecisionEqual(scf_simple(HBr)[0], -2545.887434128302)
 
-#    def test_C24_simple(self):
-#        # ~6400s FAIL
-#        """C24 symmetry Th"""
-#        self.assertPrecisionEqual(scf_simple(C24)[0], -890.071915453874)
-
-
-class test_uhf_energy(unittest.TestCase, PyQuanteAssertions):
-    def test_B12_solver(self):
-        """B12 symmetry Ih"""
-        bfs = basisset(B12,'sto-3g')
-        solver = uhf(B12,bfs,libint=True)
-        ens = solver.converge()
-        self.assertPrecisionEqual(solver.energy, -290.579419642829)
-
-    def test_B12_simple(self):
-        """B12 symmetry Ih"""
-        self.assertPrecisionEqual(scf_simple(B12)[0], -290.579419642829)
+    def test_C8H8_simple(self):
+        """C8H8"""
+        self.assertPrecisionEqual(scf_simple(C8H8, basisname='sto-6g')[0], -306.765545547300)
 
     def test_CrCO6_simple(self):
         """Cr(CO)6 symmetry Oh
@@ -207,6 +212,33 @@ class test_uhf_energy(unittest.TestCase, PyQuanteAssertions):
         """
         bfs = basisset(CrCO6,'sto-3g')
         self.assertPrecisionEqual(scf_simple(CrCO6)[0], -1699.539642257497)
+
+    def test_C24_simple(self):
+        """C24 symmetry Th"""
+        self.assertPrecisionEqual(scf_simple(C24)[0], -890.071915453874)
+
+
+class test_unstable(unittest.TestCase, PyQuanteAssertions):
+    """Unstable RHF convergence.
+       Different NWCHEM energy with and without autosym.
+    """
+    def test_B12_solver(self):
+        """B12 symmetry Ih"""
+        bfs = basisset(B12,'sto-3g')
+        solver = rhf(B12,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -290.579419642829, prec=1.0)
+
+    def test_B12_simple(self):
+        """B12 symmetry Ih"""
+        self.assertPrecisionEqual(scf_simple(B12)[0], -290.579419642829, prec=1.0)
+
+
+class test_profile(unittest.TestCase, PyQuanteAssertions):
+    def test_BrF5_simple(self):
+        """BrF5 symmetry C4v"""
+        import pstats, cProfile
+        cProfile.run('scf_simple(BrF5)')
 
 
 def runsuite(verbose=True):
