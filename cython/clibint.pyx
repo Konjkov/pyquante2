@@ -7,18 +7,6 @@ from libc.math cimport exp, pow, sqrt, M_PI
 from clibint cimport *
 
 
-ctypedef struct AB_prim_data:
-    double zeta
-    double P
-    double norm_S12
-
-
-ctypedef struct CD_prim_data:
-    double eta
-    double Q
-    double norm_S34
-
-
 cdef int* ang(int i, max_am):
     cdef int ii = 0
     cdef int result[3]
@@ -54,6 +42,35 @@ cdef double fact2(int k):
         return 1.0
 
 
+cdef Fm(int m, double x, double *buffer): # (13)
+    """Compute list of Boys Functions: F0(x), F1(x)...Fm(x).
+       Reference: B.A. Mamedov, Journal of Mathematical Chemistry July 2004,
+       Volume 36, Issue 3, pp 301-306.
+       On the Evaluation of Boys Functions Using Downward Recursion Relation.
+       DOI 10.1023/B:JOMC.0000044226.49921.f5
+    """
+    cdef int k
+    cdef double sum
+
+    if (x<35.0):
+        current = 1.0/(2*m + 1)
+        sum = 0.0
+        k = 0
+        while current>1.0e-9:
+            k += 1
+            sum += current
+            current *= (2 * x)/(2*m + 2*k + 1)
+        buffer[m] = exp(-x) * sum
+        # Downward Recursion
+        for k in range(m,0,-1):
+            buffer[k-1] = (2*x*buffer[k] + exp(-x))/(2*k-1)
+    else:
+        buffer[0] = sqrt(M_PI/x)/2.0
+        # Upward Recursion
+        for k in range(m):
+          buffer[k+1] = ((2*k+1)*buffer[k] - exp(-x))/(2*x)
+
+
 cdef class CGBF:
     cdef:
         int alpha_len
@@ -83,9 +100,8 @@ cdef class CGBF:
 cdef class Libint:
     cdef:
         Libint_t libint_data
-        int memory_allocated, memory_required, max_num_prim_comb, max_am
+        int memory_allocated, memory_required, max_num_prim_comb, max_am, sum_am
         CGBF a, b, c, d
-        double Boys[27]
         double dist2_AB, dist2_CD
         double *norm_S12
         double *norm_S34
@@ -104,6 +120,7 @@ cdef class Libint:
         init_libint_base()
         self.max_num_prim_comb = self.a.alpha_len * self.b.alpha_len * self.c.alpha_len * self.d.alpha_len
         self.max_am = max(self.a.lambda_n, self.b.lambda_n, self.c.lambda_n, self.d.lambda_n)
+        self.sum_am = self.a.lambda_n + self.b.lambda_n + self.c.lambda_n + self.d.lambda_n
         memory_required = libint_storage_required(self.max_am, self.max_num_prim_comb)
         memory_allocated = init_libint(&self.libint_data, self.max_am, self.max_num_prim_comb)
         for i in xrange(3):
@@ -138,35 +155,6 @@ cdef class Libint:
                     for l in range(self.d.alpha_len):
                         self.libint_data.PrimQuartet[primitive_number] = self.compute_primitive_data(i, j, k, l)
                         primitive_number += 1
-
-    cdef Fm(self, double x): # (13)
-        """Compute list of Boys Functions: F0(x), F1(x)...Fm(x).
-           Reference: B.A. Mamedov, Journal of Mathematical Chemistry July 2004,
-           Volume 36, Issue 3, pp 301-306.
-           On the Evaluation of Boys Functions Using Downward Recursion Relation.
-           DOI 10.1023/B:JOMC.0000044226.49921.f5
-        """
-        cdef int k
-        cdef int m = self.a.lambda_n + self.b.lambda_n + self.c.lambda_n + self.d.lambda_n
-        cdef double sum
-
-        if (x<35.0):
-            current = 1.0/(2*m + 1)
-            sum = 0.0
-            k = 0
-            while current>1.0e-9:
-                k += 1
-                sum += current
-                current *= (2 * x)/(2*m + 2*k + 1)
-            self.Boys[m] = exp(-x) * sum
-            # Downward Recursion
-            for k in range(m,0,-1):
-                self.Boys[k-1] = (2*x*self.Boys[k] + exp(-x))/(2*k-1)
-        else:
-            self.Boys[0] = sqrt(M_PI/x)/2.0
-            # Upward Recursion
-            for k in range(m):
-              self.Boys[k+1] = ((2*k+1)*self.Boys[k] - exp(-x))/(2*x)
 
     cdef double RenormPrefactor(self, s, p, q, r):
         """Actualy described in eq. (19) of libint manual.
@@ -221,10 +209,9 @@ cdef class Libint:
         pdata.oo2p = 1.0 / (2 * rho)
         #pdata.ss_r12_ss = 0.0 # lib12
 
-        self.Fm(rho * vec_dist2(P, Q)) #(13)
-
-        for m in range(self.a.lambda_n + self.b.lambda_n + self.c.lambda_n + self.d.lambda_n + 1):
-            pdata.F[m] = 2 * self.Boys[m] * sqrt(rho / M_PI) * self.norm_S12[i*self.b.alpha_len+j] * self.norm_S34[k*self.d.alpha_len+l] # (17)
+        Fm(self.sum_am, rho * vec_dist2(P, Q), pdata.F) #(13)
+        for m in range(self.sum_am + 1):
+            pdata.F[m] *= 2 * sqrt(rho / M_PI) * self.norm_S12[i*self.b.alpha_len+j] * self.norm_S34[k*self.d.alpha_len+l] # (17)
         return pdata
 
 
