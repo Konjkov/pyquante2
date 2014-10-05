@@ -128,6 +128,17 @@ C8H8 = molecule([(1,   1.40173963,     1.40173963,     1.40173963),
                  units='Angstrom',
                  name='Cubane')
 
+N8 = molecule([(7,   0.73,     0.73,     0.73),
+               (7,   0.73,     0.73,    -0.73),
+               (7,   0.73,    -0.73,     0.73),
+               (7,  -0.73,     0.73,     0.73),
+               (7,   0.73,    -0.73,    -0.73),
+               (7,  -0.73,     0.73,    -0.73),
+               (7,  -0.73,    -0.73,     0.73),
+               (7,  -0.73,    -0.73,    -0.73)],
+               units='Angstrom',
+               name='N-Cubane')
+
 
 def scf_simple(geo,basisname='sto-3g',maxiter=25,verbose=False):
     bfs = basisset(geo,basisname)
@@ -206,6 +217,10 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
         """C8H8"""
         self.assertPrecisionEqual(scf_simple(C8H8, basisname='sto-6g')[0], -306.765545547300)
 
+    def test_N8_simple(self):
+        """N8"""
+        self.assertPrecisionEqual(scf_simple(N8, basisname='cc-pvdz')[0], -434.992755329296 prec=4e-6)
+
     def test_CrCO6_simple(self):
         """Cr(CO)6 symmetry Oh
         Reference: Whitaker, A.; Jeffery, J. W. Acta Cryst. 1967, 23, 977. DOI: 10.1107/S0365110X67004153
@@ -239,6 +254,16 @@ class test_profile(unittest.TestCase, PyQuanteAssertions):
         """BrF5 symmetry C4v"""
         import pstats, cProfile
         cProfile.run('scf_simple(BrF5)')
+
+    def test_C8H8_simple(self):
+        """C8H8"""
+        import pstats, cProfile
+        cProfile.run('scf_simple(C8H8, basisname=\'sto-6g\')')
+
+    def test_N8_simple(self):
+        """N8"""
+        import pstats, cProfile
+        cProfile.run('scf_simple(N8, basisname=\'cc-pvdz\')')
 
 
 def runsuite(verbose=True):
