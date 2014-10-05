@@ -1,4 +1,4 @@
-# cython: profile=False
+# cython: profile=True
 
 import numpy as np
 cimport numpy as np
@@ -8,7 +8,7 @@ from libc.math cimport exp, pow, sqrt, M_PI
 from clibint cimport *
 
 
-cdef ang(int i, max_am, int[3] result):
+cdef ang(int i, int max_am, int[3] result):
     """ Return n-th set of angular momentum indeces
         for shell with angular momentum = max_am, in
         the canonical LIBINT order.
@@ -46,6 +46,19 @@ cdef double fact2(int k):
         return fact2[(k-1)/2]
     else:
         return 1.0
+
+
+cdef double RenormPrefactor(int i, int max_am):
+    """This is e part of RenormPrefactor described in eq. (19)
+       of libint manual.
+       Actuale it may be an iterator over set of angular momentum indeces.
+    """
+
+    cdef int res[3]
+    ang(i, max_am, res)
+    norm_constant = fact2(2 * max_am - 1)
+    norm_constant /= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
+    return sqrt(norm_constant)
 
 
 cdef Fm(int m, double x, double *buffer): # (13)
@@ -164,27 +177,6 @@ cdef class Libint:
                         self.compute_primitive_data(i, j, k, l, &self.libint_data.PrimQuartet[primitive_number])
                         primitive_number += 1
 
-    cdef double RenormPrefactor(self, s, p, q, r):
-        """Actualy described in eq. (19) of libint manual.
-        """
-        cdef int res[3]
-
-        norm_constant = 1
-        ang(s, self.a.N[0], res)
-        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
-        ang(p, self.b.N[0], res)
-        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
-        ang(q, self.c.N[0], res)
-        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
-        ang(r, self.d.N[0], res)
-        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
-        norm_constant /= fact2(2 * self.a.lambda_n - 1)
-        norm_constant /= fact2(2 * self.b.lambda_n - 1)
-        norm_constant /= fact2(2 * self.c.lambda_n - 1)
-        norm_constant /= fact2(2 * self.d.lambda_n - 1)
-        return sqrt(1/norm_constant)
-
-
     cdef prim_data compute_primitive_data(self, int i, int j, int k, int l, prim_data *pdata):
         cdef:
             int m
@@ -248,13 +240,21 @@ cdef class Libint:
             result = np.zeros(shape=(cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc), dtype=np.double)
             eri = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)
             for s in range(cgbf_a_nfunc):
+                a_renorm_prefactor = RenormPrefactor(s, self.a.lambda_n)
                 for p in range(cgbf_b_nfunc):
+                    b_renorm_prefactor = RenormPrefactor(p, self.b.lambda_n)
                     for q in range(cgbf_c_nfunc):
+                        c_renorm_prefactor = RenormPrefactor(q, self.c.lambda_n)
                         for r in range(cgbf_d_nfunc):
+                            d_renorm_prefactor = RenormPrefactor(r, self.d.lambda_n)
                             ijkl = ((s*cgbf_b_nfunc+p)*cgbf_c_nfunc+q)*cgbf_d_nfunc+r
+                            # we need to copy *eri data because they will be freed by free_libint(& self.libint_data)
                             result[s,p,q,r] = eri[ijkl]
                             if self.max_am>1:
-                                result[s,p,q,r] *= self.RenormPrefactor(s, p, q, r)
+                                result[s,p,q,r] *= a_renorm_prefactor * \
+                                                   b_renorm_prefactor * \
+                                                   c_renorm_prefactor * \
+                                                   d_renorm_prefactor
             return result
 
     def __dealloc__(self):
