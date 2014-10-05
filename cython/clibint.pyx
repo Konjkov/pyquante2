@@ -8,24 +8,31 @@ from clibint cimport *
 
 
 cdef int* ang(int i, max_am):
-    cdef int ii = 0
+    """ Return n-th set of angular momentum indeces
+        for shell with angular momentum = max_am, in
+        the canonical LIBINT order.
+        Read libint manual for detail.
+    """
+    cdef int k, l
     cdef int result[3]
-    for a_nx in range(max_am+1):
-        for a_ny in range(a_nx+1):
-            if i==ii:
-                result[0] = max_am-a_nx
-                result[1] = a_nx-a_ny
-                result[2] = a_ny
-                return result
-            ii += 1
+    k = int((sqrt(8*i+1)-1)/2)
+    l = k*(k+1)/2
+    result[0] = max_am-k
+    result[1] = l + k - i
+    result[2] = i - l
+    return result
 
 
 cdef double vec_dist2(double a[3], double b[3]):
+    """ Vector distance
+    """
     return (a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) + (a[2]-b[2])*(a[2]-b[2])
 
 
 cdef double fact2(int k):
-    """ LIBINT_MAX_AM = 8 (maximum angular momentum + 1)
+    """ Compute double factorial: k!! = 1*3*5*....k
+        for any shell with angular momentum less then
+        LIBINT_MAX_AM = 8 (maximum angular momentum + 1)
     """
     cdef double *fact2 = [1, # P shell
                           1*3, # D shell
@@ -72,6 +79,8 @@ cdef Fm(int m, double x, double *buffer): # (13)
 
 
 cdef class CGBF:
+    """ Contracted Gausian Basis Function
+    """
     cdef:
         int alpha_len
         int lambda_n
@@ -153,7 +162,7 @@ cdef class Libint:
             for j in range(self.b.alpha_len):
                 for k in range(self.c.alpha_len):
                     for l in range(self.d.alpha_len):
-                        self.libint_data.PrimQuartet[primitive_number] = self.compute_primitive_data(i, j, k, l)
+                        self.compute_primitive_data(i, j, k, l, &self.libint_data.PrimQuartet[primitive_number])
                         primitive_number += 1
 
     cdef double RenormPrefactor(self, s, p, q, r):
@@ -171,10 +180,9 @@ cdef class Libint:
         return sqrt(1/norm_constant)
 
 
-    cdef prim_data compute_primitive_data(self, int i, int j, int k, int l):
+    cdef prim_data compute_primitive_data(self, int i, int j, int k, int l, prim_data *pdata):
         cdef:
             int m
-            prim_data pdata
             double zeta, eta, rho
             double P[3]
             double Q[3]
@@ -212,8 +220,6 @@ cdef class Libint:
         Fm(self.sum_am, rho * vec_dist2(P, Q), pdata.F) #(13)
         for m in range(self.sum_am + 1):
             pdata.F[m] *= 2 * sqrt(rho / M_PI) * self.norm_S12[i*self.b.alpha_len+j] * self.norm_S34[k*self.d.alpha_len+l] # (17)
-        return pdata
-
 
     def build_ERI(self):
         cdef int n, ijkl
