@@ -49,9 +49,9 @@ cdef double fact2(int k):
 
 
 cdef double RenormPrefactor(int i, int max_am):
-    """This is e part of RenormPrefactor described in eq. (19)
-       of libint manual.
-       Actuale it may be an iterator over set of angular momentum indeces.
+    """ This is a part of RenormPrefactor described in eq. (19)
+        of libint manual.
+        Actualy it may be an iterator over set of angular momentum indeces.
     """
 
     cdef int res[3]
@@ -91,21 +91,22 @@ cdef Fm(int m, double x, double *buffer): # (13)
 
 
 cdef class CGBF:
-    """ Contracted Gausian Basis Function
+    """ Contracted Gausian Basis Function eq. (1)
+        of libint manual.
     """
     cdef:
-        int alpha_len
-        int lambda_n
-        double A[3]
-        int N[3]
-        double *alpha
-        double *norm_coef
+        int alpha_len # num's of primitives
+        int lambda_n  # orbital quantum number of CGBF, sum of nx, ny, nz
+        double A[3]   # coordinates CGBF centered at
+        double *alpha # orbital exponents
+        double *norm_coef # normalization-including contraction coefficients (4)
 
     def __cinit__(self, cgbf):
+        if cgbf.powers[1] + cgbf.powers[2] > 0:
+            raise ValueError("Only first primitive function in a shell permitted")
         for i in range(3):
             self.A[i] = cgbf.origin[i]
-            self.N[i] = cgbf.powers[i]
-        self.lambda_n = self.N[0] + self.N[1] + self.N[2]
+        self.lambda_n = cgbf.powers[0]
         self.alpha_len = len(cgbf.pexps)
         self.alpha = <double *> PyMem_Malloc(self.alpha_len * sizeof(double))
         self.norm_coef = <double *> PyMem_Malloc(self.alpha_len * sizeof(double))
@@ -154,8 +155,8 @@ cdef class Libint:
         self.norm_S12 = <double *> PyMem_Malloc(self.a.alpha_len * self.b.alpha_len * sizeof(double))
         for i in range(self.a.alpha_len):
             for j in range(self.b.alpha_len):
-                Ca = self.a.norm_coef[i] # (4)
-                Cb = self.b.norm_coef[j] # (4)
+                Ca = self.a.norm_coef[i]
+                Cb = self.b.norm_coef[j]
                 zeta = self.a.alpha[i] + self.b.alpha[j]
                 self.norm_S12[i*self.b.alpha_len+j] = pow(M_PI / zeta, 1.5) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
                 self.norm_S12[i*self.b.alpha_len+j] *= Ca * Cb
@@ -163,8 +164,8 @@ cdef class Libint:
         self.norm_S34 = <double *> PyMem_Malloc(self.c.alpha_len * self.d.alpha_len * sizeof(double))
         for k in range(self.c.alpha_len):
             for l in range(self.d.alpha_len):
-                Cc = self.c.norm_coef[k] # (4)
-                Cd = self.d.norm_coef[l] # (4)
+                Cc = self.c.norm_coef[k]
+                Cd = self.d.norm_coef[l]
                 eta = self.c.alpha[k] + self.d.alpha[l]
                 self.norm_S34[k*self.d.alpha_len+l] = pow(M_PI / eta, 1.5) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD) # (16)
                 self.norm_S34[k*self.d.alpha_len+l] *= Cc * Cd
@@ -222,10 +223,6 @@ cdef class Libint:
         cdef int n, ijkl
         cdef int cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc
         cdef int s, p, q, r
-
-        if self.a.N[1] + self.a.N[2] + self.b.N[1] + self.b.N[2] + \
-           self.c.N[1] + self.c.N[2] + self.d.N[1] + self.d.N[2] >0:
-            raise ValueError("Only first primitive function in a shell permitted")
 
         if self.max_am==0:
             result = np.zeros(shape=(1,1,1,1), dtype=np.double)
