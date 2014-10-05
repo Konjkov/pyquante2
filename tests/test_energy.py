@@ -219,7 +219,7 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
 
     def test_N8_simple(self):
         """N8"""
-        self.assertPrecisionEqual(scf_simple(N8, basisname='cc-pvdz')[0], -434.992755329296 prec=4e-6)
+        self.assertPrecisionEqual(scf_simple(N8, basisname='cc-pvdz')[0], -434.992755329296, prec=4e-6)
 
     def test_CrCO6_simple(self):
         """Cr(CO)6 symmetry Oh
