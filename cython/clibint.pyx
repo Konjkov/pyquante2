@@ -1,26 +1,25 @@
-# cython: profile=True
+# cython: profile=False
 
 import numpy as np
 cimport numpy as np
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from cython cimport view
 from libc.math cimport exp, pow, sqrt, M_PI
 from clibint cimport *
 
 
-cdef int* ang(int i, max_am):
+cdef ang(int i, max_am, int[3] result):
     """ Return n-th set of angular momentum indeces
         for shell with angular momentum = max_am, in
         the canonical LIBINT order.
         Read libint manual for detail.
     """
     cdef int k, l
-    cdef int result[3]
     k = int((sqrt(8*i+1)-1)/2)
     l = k*(k+1)/2
     result[0] = max_am-k
     result[1] = l + k - i
     result[2] = i - l
-    return result
 
 
 cdef double vec_dist2(double a[3], double b[3]):
@@ -168,11 +167,17 @@ cdef class Libint:
     cdef double RenormPrefactor(self, s, p, q, r):
         """Actualy described in eq. (19) of libint manual.
         """
+        cdef int res[3]
+
         norm_constant = 1
-        norm_constant *= fact2(2 * ang(s, self.a.N[0])[0] - 1) * fact2(2 * ang(s, self.a.N[0])[1] - 1) * fact2(2 * ang(s, self.a.N[0])[2] - 1)
-        norm_constant *= fact2(2 * ang(p, self.b.N[0])[0] - 1) * fact2(2 * ang(p, self.b.N[0])[1] - 1) * fact2(2 * ang(p, self.b.N[0])[2] - 1)
-        norm_constant *= fact2(2 * ang(q, self.c.N[0])[0] - 1) * fact2(2 * ang(q, self.c.N[0])[1] - 1) * fact2(2 * ang(q, self.c.N[0])[2] - 1)
-        norm_constant *= fact2(2 * ang(r, self.d.N[0])[0] - 1) * fact2(2 * ang(r, self.d.N[0])[1] - 1) * fact2(2 * ang(r, self.d.N[0])[2] - 1)
+        ang(s, self.a.N[0], res)
+        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
+        ang(p, self.b.N[0], res)
+        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
+        ang(q, self.c.N[0], res)
+        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
+        ang(r, self.d.N[0], res)
+        norm_constant *= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
         norm_constant /= fact2(2 * self.a.lambda_n - 1)
         norm_constant /= fact2(2 * self.b.lambda_n - 1)
         norm_constant /= fact2(2 * self.c.lambda_n - 1)
