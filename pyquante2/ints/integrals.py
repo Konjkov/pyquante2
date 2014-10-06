@@ -129,22 +129,13 @@ class libint_twoe_integrals(twoe_integrals):
         ints = self._2e_ints
 
         for i,j,k,l in iiterator(nbf):
-            first_a = bfs[i].powers[1] + bfs[i].powers[2] == 0
-            first_b = bfs[j].powers[1] + bfs[j].powers[2] == 0
-            first_c = bfs[k].powers[1] + bfs[k].powers[2] == 0
-            first_d = bfs[l].powers[1] + bfs[l].powers[2] == 0
-            if first_a and first_b and first_c and first_d:
+
+            if bfs[i].is_first and bfs[j].is_first and bfs[k].is_first and bfs[l].is_first:
                 shell = Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l])
-
-                cgbf_a_nfunc = (bfs[i].powers[0]+1)*(bfs[i].powers[0]+2)/2
-                cgbf_b_nfunc = (bfs[j].powers[0]+1)*(bfs[j].powers[0]+2)/2
-                cgbf_c_nfunc = (bfs[k].powers[0]+1)*(bfs[k].powers[0]+2)/2
-                cgbf_d_nfunc = (bfs[l].powers[0]+1)*(bfs[l].powers[0]+2)/2
-
-                for s in range(i, i+cgbf_a_nfunc):
-                    for p in range(j, j+cgbf_b_nfunc):
-                        for q in range(k, k+cgbf_c_nfunc):
-                            for r in range(l, l+cgbf_d_nfunc):
+                for s in range(i, i+bfs[i].nfunc):
+                    for p in range(j, j+bfs[j].nfunc):
+                        for q in range(k, k+bfs[k].nfunc):
+                            for r in range(l, l+bfs[l].nfunc):
                                 ints[s,p,q,r] = ints[p,s,q,r] = ints[s,p,r,q] = ints[p,s,r,q] = \
                                 ints[q,r,s,p] = ints[r,q,s,p] = ints[q,r,p,s] = \
                                 ints[r,q,p,s] = shell[s-i,p-j,q-k,r-l]
