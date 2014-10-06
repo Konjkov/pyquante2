@@ -28,6 +28,9 @@ class cgbf(object):
 
         self.origin = np.asarray(origin,'d')
         self.powers = powers
+        # TODO: temporary
+        self.is_first = (powers[1] + powers[2] == 0)
+        self.nfunc = (sum(powers)+1)*(sum(powers)+2)/2
 
         self.pgbfs = []
         self.coefs = array.array('d')
