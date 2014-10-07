@@ -4,7 +4,7 @@ import numpy as np
 cimport numpy as np
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cython cimport view
-from libc.math cimport exp, pow, sqrt, M_PI
+from libc.math cimport exp, sqrt, M_PI
 from clibint cimport *
 
 
@@ -124,11 +124,10 @@ cdef class CGBF:
 cdef class Libint:
     cdef:
         Libint_t libint_data
-        int memory_allocated, memory_required, max_num_prim_comb, max_am, sum_am, primitive_number
+        int max_num_prim_comb, max_am, sum_am
+        int memory_allocated, memory_required, primitive_number
         CGBF a, b, c, d
         double dist2_AB, dist2_CD
-        double *norm_S12
-        double *norm_S34
 
     def __cinit__(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
         self.a = CGBF(cgbf_a)
@@ -158,24 +157,6 @@ cdef class Libint:
         self.dist2_AB = vec_dist2(self.a.A, self.b.A)
         self.dist2_CD = vec_dist2(self.c.A, self.d.A)
 
-        self.norm_S12 = <double *> PyMem_Malloc(self.a.alpha_len * self.b.alpha_len * sizeof(double))
-        for i in range(self.a.alpha_len):
-            for j in range(self.b.alpha_len):
-                Ca = self.a.norm_coef[i]
-                Cb = self.b.norm_coef[j]
-                zeta = self.a.alpha[i] + self.b.alpha[j]
-                self.norm_S12[i*self.b.alpha_len+j] = pow(M_PI / zeta, 1.5) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
-                self.norm_S12[i*self.b.alpha_len+j] *= Ca * Cb
-
-        self.norm_S34 = <double *> PyMem_Malloc(self.c.alpha_len * self.d.alpha_len * sizeof(double))
-        for k in range(self.c.alpha_len):
-            for l in range(self.d.alpha_len):
-                Cc = self.c.norm_coef[k]
-                Cd = self.d.norm_coef[l]
-                eta = self.c.alpha[k] + self.d.alpha[l]
-                self.norm_S34[k*self.d.alpha_len+l] = pow(M_PI / eta, 1.5) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD) # (16)
-                self.norm_S34[k*self.d.alpha_len+l] *= Cc * Cd
-
         primitive_number = 0
         for i in range(self.a.alpha_len):
             for j in range(self.b.alpha_len):
@@ -184,7 +165,7 @@ cdef class Libint:
                         self.compute_primitive_data(i, j, k, l, &self.libint_data.PrimQuartet[primitive_number])
                         primitive_number += 1
 
-    cdef prim_data compute_primitive_data(self, int i, int j, int k, int l, prim_data *pdata):
+    cdef compute_primitive_data(self, int i, int j, int k, int l, prim_data *pdata):
         cdef:
             int m
             double zeta, eta, rho
@@ -221,9 +202,17 @@ cdef class Libint:
         pdata.oo2p = 1.0 / (2 * rho)
         #pdata.ss_r12_ss = 0.0 # lib12
 
+        Ca = self.a.norm_coef[i]
+        Cb = self.b.norm_coef[j]
+        Cc = self.c.norm_coef[k]
+        Cd = self.d.norm_coef[l]
+        S12 = sqrt(M_PI / zeta) * (M_PI / zeta) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
+        S34 = sqrt(M_PI / eta) * (M_PI / eta) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD)   # (16)
+        norm_coef = 2 * sqrt(rho / M_PI) * S12 * S34  * Ca * Cb * Cc * Cd
+
         Fm(self.sum_am, rho * vec_dist2(P, Q), pdata.F) #(13)
         for m in range(self.sum_am + 1):
-            pdata.F[m] *= 2 * sqrt(rho / M_PI) * self.norm_S12[i*self.b.alpha_len+j] * self.norm_S34[k*self.d.alpha_len+l] # (17)
+            pdata.F[m] *= norm_coef # (17)
 
     def build_ERI(self):
         cdef int n, ijkl
@@ -262,9 +251,6 @@ cdef class Libint:
 
     def __dealloc__(self):
         free_libint(&self.libint_data)
-        PyMem_Free(self.norm_S12)
-        PyMem_Free(self.norm_S34)
-
 
 def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
     swap_ab = sum(cgbf_b.powers) > sum(cgbf_a.powers)
