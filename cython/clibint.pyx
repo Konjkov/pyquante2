@@ -8,6 +8,8 @@ from libc.math cimport exp, pow, sqrt, M_PI
 from clibint cimport *
 
 
+init_libint_base()
+
 cdef ang(int i, int max_am, int[3] result):
     """ Return n-th set of angular momentum indeces
         for shell with angular momentum = max_am, in
@@ -122,7 +124,7 @@ cdef class CGBF:
 cdef class Libint:
     cdef:
         Libint_t libint_data
-        int memory_allocated, memory_required, max_num_prim_comb, max_am, sum_am
+        int memory_allocated, memory_required, max_num_prim_comb, max_am, sum_am, primitive_number
         CGBF a, b, c, d
         double dist2_AB, dist2_CD
         double *norm_S12
@@ -139,12 +141,16 @@ cdef class Libint:
             raise ValueError("<ab|cd> violate Libint angular momentum permission: lambda(c)>=lambda(d)")
         if self.a.lambda_n + self.b.lambda_n > self.c.lambda_n + self.d.lambda_n:
             raise ValueError("<ab|cd> violate Libint angular momentum permission: lambda(c)+lambda(d)>=lambda(a)+lambda(b)")
-        init_libint_base()
+
         self.max_num_prim_comb = self.a.alpha_len * self.b.alpha_len * self.c.alpha_len * self.d.alpha_len
         self.max_am = max(self.a.lambda_n, self.b.lambda_n, self.c.lambda_n, self.d.lambda_n)
         self.sum_am = self.a.lambda_n + self.b.lambda_n + self.c.lambda_n + self.d.lambda_n
+
         memory_required = libint_storage_required(self.max_am, self.max_num_prim_comb)
         memory_allocated = init_libint(&self.libint_data, self.max_am, self.max_num_prim_comb)
+        if memory_required<>memory_allocated:
+            raise ValueError("memory allocation error")
+
         for i in xrange(3):
             self.libint_data.AB[i] = self.a.A[i] - self.b.A[i]
             self.libint_data.CD[i] = self.c.A[i] - self.d.A[i]
