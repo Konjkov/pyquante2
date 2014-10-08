@@ -84,12 +84,13 @@ class rhf(hamiltonian):
     name = 'RHF'
 
     def update(self,D):
-        self.energy = self.geo.nuclear_repulsion()
-        H = self.i1.T + self.i1.V
-        self.energy += trace2(H,D)
-        JK = self.i2.get_2jk(D)
-        H = H + JK
-        self.energy += trace2(H,D)
+        Enuc = self.geo.nuclear_repulsion()
+        h = self.i1.T + self.i1.V
+        Eone = 2 * trace2(h,D)
+        G = self.i2.get_2jk(D)
+        H = h + G
+        Etwo = trace2(D,G)
+        self.energy = Enuc + Eone + Etwo
         E,c = geigh(H,self.i1.S)
         self.orbe = E
         self.orbs = c

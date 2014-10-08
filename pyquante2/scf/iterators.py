@@ -1,12 +1,12 @@
-import numpy as np
-from pyquante2.utils import dmat
+from pyquante2.utils import dmat, geigh
 
 class SCFIterator(object):
     def __init__(self,H,c=None,tol=1e-5,maxiters=100):
         self.H = H
         self.Eold = 0
         if c is None:
-            orbe,self.c = np.linalg.eigh(H.i1.S)
+            h = H.i1.T + H.i1.V
+            orbe,self.c = geigh(h, H.i1.S)
         else:
             self.c = c
         self.maxiters = maxiters
