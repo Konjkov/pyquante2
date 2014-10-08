@@ -1,8 +1,6 @@
 import unittest, logging
-import numpy as np
 from pyquante2 import molecule, rhf, uhf, basisset
-from pyquante2.utils import trace2, geigh, dmat
-from pyquante2.ints.integrals import onee_integrals, libint_twoe_integrals
+from pyquante2.scf.iterators import AveragingIterator
 
 
 HBr = molecule([( 1,  0.00000000,     0.00000000,     0.00000000),
@@ -140,42 +138,8 @@ N8 = molecule([(7,   0.73,     0.73,     0.73),
                name='N-Cubane')
 
 
-def scf_simple(geo,basisname='sto-3g',maxiter=25,verbose=False):
-    bfs = basisset(geo,basisname)
-    i1 = onee_integrals(bfs,geo)
-    i2 = libint_twoe_integrals(bfs)
-    if verbose: print ("S=\n%s" % i1.S)
-    h = i1.T + i1.V
-    if verbose: print ("h=\n%s" % h)
-    if verbose: print ("T=\n%s" % i1.T)
-    if verbose: print ("V=\n%s" % i1.V)
-    E,U = geigh(h,i1.S)
-    if verbose: print ("E=\n%s" % E)
-    if verbose: print ("U=\n%s" % U)
-    Enuke = geo.nuclear_repulsion()
-    nocc = geo.nocc()
-    Eold = Energy = 0
-    if verbose: print ("2e ints\n%s" % i2)
-    for i in xrange(maxiter):
-        D = dmat(U,nocc)
-        if verbose: print ("D=\n%s" % D)
-        Eone = 2*trace2(h,D)
-        G = i2.get_2jk(D)
-        Etwo = trace2(D,G)
-        H = h+G
-        E,U = geigh(H,i1.S)
-        Energy = Enuke+Eone+Etwo
-        print ("HF: %02d   %10.6f : %10.6f %10.6f %10.6f" % ((i+1),Energy,Enuke,Eone,Etwo))
-        if np.isclose(Energy,Eold):
-            break
-        Eold = Energy
-    else:
-        print ("Warning: Maxiter %d hit in scf_simple" % maxiter)
-    return Energy,E,U
-
-
 class PyQuanteAssertions:
-    def assertPrecisionEqual(self, a, b, prec=2e-6):
+    def assertPrecisionEqual(self, a, b, prec=2e-8):
         x = abs(2*(a-b)/(a+b))
         if x > prec:
             raise AssertionError("%.9f is equal %.9f with precision %.9f)" % (a, b, x))
@@ -190,10 +154,6 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -39.726670467839)
 
-    def test_C2H2Cl2_simple(self):
-        """C2H2Cl2 symmetry C2H"""
-        self.assertPrecisionEqual(scf_simple(C2H2Cl2)[0], -967.533150327823)
-
     def test_C2H2Cl2_solver(self):
         """C2H2Cl2 symmetry C2H"""
         bfs = basisset(C2H2Cl2,'sto-3g')
@@ -203,34 +163,38 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
 
     def test_H2O_4_simple(self):
         """H2O tethramer symmetry S4"""
-        self.assertPrecisionEqual(scf_simple(H2O4)[0], -299.909789863537)
+        bfs = basisset(H2O4,'sto-3g')
+        solver = rhf(H2O4,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -299.909789863537)
 
     def test_BrF5_simple(self):
         """BrF5 symmetry C4v"""
-        self.assertPrecisionEqual(scf_simple(BrF5)[0], -3035.015731331871)
+        bfs = basisset(BrF5,'sto-3g')
+        solver = rhf(BrF5,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -3035.015731331871)
 
     def test_HBr_simple(self):
         """HBr"""
-        self.assertPrecisionEqual(scf_simple(HBr)[0], -2545.887434128302)
+        bfs = basisset(HBr,'sto-3g')
+        solver = rhf(HBr,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -2545.887434128302)
 
     def test_C8H8_simple(self):
         """C8H8"""
-        self.assertPrecisionEqual(scf_simple(C8H8, basisname='sto-6g')[0], -306.765545547300)
+        bfs = basisset(C8H8,'sto-6g')
+        solver = rhf(C8H8,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -306.765545547300)
 
     def test_N8_simple(self):
         """N8"""
-        self.assertPrecisionEqual(scf_simple(N8, basisname='cc-pvdz')[0], -434.992755329296, prec=4e-6)
-
-    def test_CrCO6_simple(self):
-        """Cr(CO)6 symmetry Oh
-        Reference: Whitaker, A.; Jeffery, J. W. Acta Cryst. 1967, 23, 977. DOI: 10.1107/S0365110X67004153
-        """
-        bfs = basisset(CrCO6,'sto-3g')
-        self.assertPrecisionEqual(scf_simple(CrCO6)[0], -1699.539642257497)
-
-    def test_C24_simple(self):
-        """C24 symmetry Th"""
-        self.assertPrecisionEqual(scf_simple(C24)[0], -890.071915453874)
+        bfs = basisset(N8,'cc-pvdz')
+        solver = rhf(N8,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -434.992755329296, prec=3e-7)
 
 
 class test_unstable(unittest.TestCase, PyQuanteAssertions):
@@ -242,28 +206,25 @@ class test_unstable(unittest.TestCase, PyQuanteAssertions):
         bfs = basisset(B12,'sto-3g')
         solver = rhf(B12,bfs,libint=True)
         ens = solver.converge()
-        self.assertPrecisionEqual(solver.energy, -290.579419642829, prec=1.0)
+        self.assertPrecisionEqual(solver.energy, -290.579419642829)
 
-    def test_B12_simple(self):
-        """B12 symmetry Ih"""
-        self.assertPrecisionEqual(scf_simple(B12)[0], -290.579419642829, prec=1.0)
+    def test_CrCO6_simple(self):
+        # FAIL
+        """Cr(CO)6 symmetry Oh
+        Reference: Whitaker, A.; Jeffery, J. W. Acta Cryst. 1967, 23, 977. DOI: 10.1107/S0365110X67004153
+        """
+        bfs = basisset(CrCO6,'sto-3g')
+        solver = rhf(CrCO6,bfs,libint=True)
+        ens = solver.converge(iterator=AveragingIterator)
+        self.assertPrecisionEqual(solver.energy, -1699.539642257497)
 
-
-class test_profile(unittest.TestCase, PyQuanteAssertions):
-    def test_BrF5_simple(self):
-        """BrF5 symmetry C4v"""
-        import pstats, cProfile
-        cProfile.run('scf_simple(BrF5)')
-
-    def test_C8H8_simple(self):
-        """C8H8"""
-        import pstats, cProfile
-        cProfile.run('scf_simple(C8H8, basisname=\'sto-6g\')')
-
-    def test_N8_simple(self):
-        """N8"""
-        import pstats, cProfile
-        cProfile.run('scf_simple(N8, basisname=\'cc-pvdz\')')
+    def test_C24_simple(self):
+        # FAIL
+        """C24 symmetry Th"""
+        bfs = basisset(C24,'sto-3g')
+        solver = rhf(C24,bfs,libint=True)
+        ens = solver.converge()
+        self.assertPrecisionEqual(solver.energy, -890.071915453874)
 
 
 def runsuite(verbose=True):
