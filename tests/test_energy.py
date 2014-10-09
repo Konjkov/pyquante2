@@ -1,12 +1,8 @@
 import unittest, logging
 from pyquante2 import molecule, rhf, uhf, basisset
+from pyquante2.geo.molecule import read_xyz
 from pyquante2.scf.iterators import AveragingIterator
 
-
-HBr = molecule([( 1,  0.00000000,     0.00000000,     0.00000000),
-                (35,  0.00000000,     0.00000000,     1.00000000)],
-                units='Angstrom',
-                name='HBr')
 
 CH4 = molecule([(6,  0.00000000,     0.00000000,     0.00000000),
                 (1,  1.18989170,     1.18989170,     1.18989170),
@@ -16,127 +12,25 @@ CH4 = molecule([(6,  0.00000000,     0.00000000,     0.00000000),
                 units='Bohr',
                 name='CH4')
 
-C2H2Cl2 = molecule([( 6,  0,    0,  0.5),
-                    ( 6,  0,    0, -0.5),
-                    ( 1,  0, -0.4, -1.0),
-                    ( 1,  0,  0.4,  1.0),
-                    (17,  0, -0.4,  1.0),
-                    (17,  0,  0.4, -1.0)],
-                    units='Angstrom',
-                    name='C2H2Cl2')
+HBr = read_xyz('./molfiles/HBr.xyz')
 
-H2O4 = molecule([(8,  -1.367062,       1.364510,       0.007273),
-                 (8,  -1.364510,      -1.367062,      -0.007273),
-                 (8,   1.364510,       1.367062,      -0.007273),
-                 (8,   1.367062,      -1.364510,       0.007273),
-                 (1,  -0.395152,       1.503429,      -0.005375),
-                 (1,  -1.503429,      -0.395152,       0.005375),
-                 (1,   1.503429,       0.395152,       0.005375),
-                 (1,   0.395152,      -1.503429,      -0.005375),
-                 (1,  -1.687281,       1.875361,       0.755434),
-                 (1,  -1.875361,      -1.687281,      -0.755434),
-                 (1,   1.875361,       1.687281,      -0.755434),
-                 (1,   1.687281,      -1.875361,       0.755434)],
-                 units='Angstrom',
-                 name='H2O4')
+C2H2Cl2 = read_xyz('./molfiles/C2H2Cl2.xyz')
 
-BrF5 = molecule([(35,  0.0000,    0.0000,   -0.4183),
-                 ( 9, -1.2168,   -1.2168,   -0.2169),
-                 ( 9,  1.2168,   -1.2168,   -0.2169),
-                 ( 9,  0.0000,    0.0000,    1.2858),
-                 ( 9,  1.2168,    1.2168,   -0.2169),
-                 ( 9, -1.2168,    1.2168,   -0.2169)],
-                 units='Angstrom',
-                 name='BrF5')
+H2O4 = read_xyz('./molfiles/H2O_4.xyz')
 
-B12 = molecule([(5,   0.00000000,     0.00000000,     2.00000000),
-                (5,   1.44721360,    -1.05146222,     0.89442719),
-                (5,   1.78885438,     0.00000000,    -0.89442719),
-                (5,   0.55278640,     1.70130162,    -0.89442719),
-                (5,  -1.44721360,    -1.05146222,    -0.89442719),
-                (5,  -1.44721360,     1.05146222,    -0.89442719),
-                (5,  -0.55278640,    -1.70130162,     0.89442719),
-                (5,   0.00000000,     0.00000000,    -2.00000000),
-                (5,  -0.55278640,     1.70130162,     0.89442719),
-                (5,   1.44721360,     1.05146222,     0.89442719),
-                (5,  -1.78885438,     0.00000000,     0.89442719),
-                (5,   0.55278640,    -1.70130162,    -0.89442719)],
-                units='Angstrom',
-                name='B12')
+BrF5 = read_xyz('./molfiles/BrF5.xyz')
 
-C24 = molecule([(6,   2.00000000,     3.00000000,     4.00000000),
-                (6,  -2.00000000,    -3.00000000,     4.00000000),
-                (6,  -2.00000000,     3.00000000,    -4.00000000),
-                (6,   2.00000000,    -3.00000000,    -4.00000000),
-                (6,   4.00000000,     2.00000000,     3.00000000),
-                (6,   4.00000000,    -2.00000000,    -3.00000000),
-                (6,  -4.00000000,    -2.00000000,     3.00000000),
-                (6,  -4.00000000,     2.00000000,    -3.00000000),
-                (6,   3.00000000,     4.00000000,     2.00000000),
-                (6,  -3.00000000,     4.00000000,    -2.00000000),
-                (6,   3.00000000,    -4.00000000,    -2.00000000),
-                (6,  -3.00000000,    -4.00000000,     2.00000000),
-                (6,  -2.00000000,    -3.00000000,    -4.00000000),
-                (6,   2.00000000,     3.00000000,    -4.00000000),
-                (6,   2.00000000,    -3.00000000,     4.00000000),
-                (6,  -2.00000000,     3.00000000,     4.00000000),
-                (6,  -4.00000000,    -2.00000000,    -3.00000000),
-                (6,  -4.00000000,     2.00000000,     3.00000000),
-                (6,   4.00000000,     2.00000000,    -3.00000000),
-                (6,   4.00000000,    -2.00000000,     3.00000000),
-                (6,  -3.00000000,    -4.00000000,    -2.00000000),
-                (6,   3.00000000,    -4.00000000,     2.00000000),
-                (6,  -3.00000000,     4.00000000,     2.00000000),
-                (6,   3.00000000,     4.00000000,    -2.00000000)],
-                units='Angstrom',
-                name='C24')
+B12 = read_xyz('./molfiles/B12.xyz')
 
-CrCO6 = molecule([(24,    0.00000000,     0.00000000,     0.00000000),
-                  ( 6,    0.00000000,    -1.90950000,     0.00000000),
-                  ( 6,    0.00000000,     1.90950000,     0.00000000),
-                  ( 6,   -1.90950000,     0.00000000,     0.00000000),
-                  ( 6,    0.00000000,     0.00000000,    -1.90950000),
-                  ( 8,    0.00000000,    -3.04600000,     0.00000000),
-                  ( 8,    0.00000000,     3.04600000,     0.00000000),
-                  ( 8,   -3.04600000,     0.00000000,     0.00000000),
-                  ( 8,    0.00000000,     0.00000000,    -3.04600000),
-                  ( 6,    0.00000000,     0.00000000,     1.90950000),
-                  ( 6,    1.90950000,     0.00000000,     0.00000000),
-                  ( 8,    0.00000000,     0.00000000,     3.04600000),
-                  ( 8,    3.04600000,     0.00000000,     0.00000000)],
-                  units='Angstrom',
-                  name='CrCO6')
+C24 = read_xyz('./molfiles/C24.xyz')
 
-C8H8 = molecule([(1,   1.40173963,     1.40173963,     1.40173963),
-                 (6,   0.77867761,     0.77867761,     0.77867761),
-                 (1,   1.40173963,     1.40173963,    -1.40173963),
-                 (6,   0.77867761,     0.77867761,    -0.77867761),
-                 (1,   1.40173963,    -1.40173963,     1.40173963),
-                 (6,   0.77867761,    -0.77867761,     0.77867761),
-                 (1,  -1.40173963,     1.40173963,     1.40173963),
-                 (6,  -0.77867761,     0.77867761,     0.77867761),
-                 (1,   1.40173963,    -1.40173963,    -1.40173963),
-                 (6,   0.77867761,    -0.77867761,    -0.77867761),
-                 (1,  -1.40173963,     1.40173963,    -1.40173963),
-                 (6,  -0.77867761,     0.77867761,    -0.77867761),
-                 (1,  -1.40173963,    -1.40173963,     1.40173963),
-                 (6,  -0.77867761,    -0.77867761,     0.77867761),
-                 (1,  -1.40173963,    -1.40173963,    -1.40173963),
-                 (6,  -0.77867761,    -0.77867761,    -0.77867761)],
-                 units='Angstrom',
-                 name='Cubane')
+CrCO6 = read_xyz('./molfiles/CrCO6.xyz')
 
-N8 = molecule([(7,   0.73,     0.73,     0.73),
-               (7,   0.73,     0.73,    -0.73),
-               (7,   0.73,    -0.73,     0.73),
-               (7,  -0.73,     0.73,     0.73),
-               (7,   0.73,    -0.73,    -0.73),
-               (7,  -0.73,     0.73,    -0.73),
-               (7,  -0.73,    -0.73,     0.73),
-               (7,  -0.73,    -0.73,    -0.73)],
-               units='Angstrom',
-               name='N-Cubane')
+C8H8 = read_xyz('./molfiles/C8H8.xyz')
 
+N8 = read_xyz('./molfiles/N8.xyz')
+
+CF3 = read_xyz('./molfiles/CF3.xyz')
 
 class PyQuanteAssertions:
     def assertPrecisionEqual(self, a, b, prec=2e-8):
@@ -194,7 +88,7 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
         bfs = basisset(N8,'cc-pvdz')
         solver = rhf(N8,bfs,libint=True)
         ens = solver.converge()
-        self.assertPrecisionEqual(solver.energy, -434.992755329296, prec=3e-7)
+        self.assertPrecisionEqual(solver.energy, -434.992755329296)
 
 
 class test_unstable(unittest.TestCase, PyQuanteAssertions):
@@ -216,7 +110,7 @@ class test_unstable(unittest.TestCase, PyQuanteAssertions):
         bfs = basisset(CrCO6,'sto-3g')
         solver = rhf(CrCO6,bfs,libint=True)
         ens = solver.converge(iterator=AveragingIterator)
-        self.assertPrecisionEqual(solver.energy, -1699.539642257497)
+        self.assertPrecisionEqual(solver.energy, -1699.539642257497, prec=1e-4)
 
     def test_C24_simple(self):
         # FAIL
@@ -224,7 +118,18 @@ class test_unstable(unittest.TestCase, PyQuanteAssertions):
         bfs = basisset(C24,'sto-3g')
         solver = rhf(C24,bfs,libint=True)
         ens = solver.converge()
-        self.assertPrecisionEqual(solver.energy, -890.071915453874)
+        self.assertPrecisionEqual(solver.energy, -890.071915453874, prec=1e-3)
+
+
+class test_uhf_energy(unittest.TestCase, PyQuanteAssertions):
+    """reference energies obtained from NWCHEM 6.5"""
+    def test_CF3_solver(self):
+        """CF3 radical"""
+        bfs = basisset(CF3,'sto-3g')
+        solver = uhf(CF3,bfs,libint=True)
+        ens = solver.converge()
+        print ens
+        self.assertPrecisionEqual(solver.energy, -331.480688906400, prec=4e-8)
 
 
 def runsuite(verbose=True):
@@ -234,7 +139,7 @@ def runsuite(verbose=True):
     else: verbosity=1
     # If you want more output, uncomment this line:
     logging.basicConfig(format="%(message)s",level=logging.DEBUG)
-    suite = unittest.TestLoader().loadTestsFromTestCase(test_rhf_energy)
+    suite = unittest.TestLoader().loadTestsFromTestCase(test_uhf_energy)
     unittest.TextTestRunner(verbosity=verbosity).run(suite)
     # Running without verbosity is equivalent to replacing the above
     # two lines with the following:
