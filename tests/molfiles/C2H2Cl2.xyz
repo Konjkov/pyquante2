@@ -1,0 +1,8 @@
+6
+  trans -1,2-dichloroethylene (Symmetry C2H)
+C  0    0  0.5
+C  0    0 -0.5
+H  0 -0.4 -1.0
+H  0  0.4  1.0
+Cl 0 -0.4  1.0
+Cl 0  0.4 -1.0
