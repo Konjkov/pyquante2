@@ -128,6 +128,7 @@ cdef class Libint:
         int memory_allocated, memory_required, primitive_number
         CGBF a, b, c, d
         double dist2_AB, dist2_CD
+        object shell
 
     def __cinit__(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
         self.a = CGBF(cgbf_a)
@@ -164,6 +165,7 @@ cdef class Libint:
                     for l in range(self.d.alpha_len):
                         self.compute_primitive_data(i, j, k, l, &self.libint_data.PrimQuartet[primitive_number])
                         primitive_number += 1
+        self.build_ERI()
 
     cdef compute_primitive_data(self, int i, int j, int k, int l, prim_data *pdata):
         cdef:
@@ -218,39 +220,37 @@ cdef class Libint:
         cdef int n, ijkl
         cdef int cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc
         cdef int s, p, q, r
+        cdef double *eri
 
         if self.max_am==0:
-            result = np.zeros(shape=(1,1,1,1), dtype=np.double)
+            self.shell = np.zeros(shape=(1,1,1,1), dtype=np.double)
             for n in range(self.max_num_prim_comb):
-                result[0,0,0,0] += self.libint_data.PrimQuartet[n].F[0]
-            return result
+                self.shell[0,0,0,0] += self.libint_data.PrimQuartet[n].F[0]
         else:
             cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
             cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
             cgbf_c_nfunc = (self.c.lambda_n+1)*(self.c.lambda_n+2)/2
             cgbf_d_nfunc = (self.d.lambda_n+1)*(self.d.lambda_n+2)/2
-            result = np.zeros(shape=(cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc), dtype=np.double)
             eri = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)
-            for s in range(cgbf_a_nfunc):
-                a_renorm_prefactor = RenormPrefactor(s, self.a.lambda_n)
-                for p in range(cgbf_b_nfunc):
-                    b_renorm_prefactor = RenormPrefactor(p, self.b.lambda_n)
-                    for q in range(cgbf_c_nfunc):
-                        c_renorm_prefactor = RenormPrefactor(q, self.c.lambda_n)
-                        for r in range(cgbf_d_nfunc):
-                            d_renorm_prefactor = RenormPrefactor(r, self.d.lambda_n)
-                            ijkl = ((s*cgbf_b_nfunc+p)*cgbf_c_nfunc+q)*cgbf_d_nfunc+r
-                            # we need to copy *eri data because they will be freed by free_libint(& self.libint_data)
-                            result[s,p,q,r] = eri[ijkl]
-                            if self.max_am>1:
-                                result[s,p,q,r] *= a_renorm_prefactor * \
-                                                   b_renorm_prefactor * \
-                                                   c_renorm_prefactor * \
-                                                   d_renorm_prefactor
-            return result
+            view = <np.double_t [:cgbf_a_nfunc,:cgbf_b_nfunc,:cgbf_c_nfunc,:cgbf_d_nfunc]> eri
+            self.shell = np.asarray(view.copy())
+            if self.max_am>1:
+                for s in range(cgbf_a_nfunc):
+                    a_renorm_prefactor = RenormPrefactor(s, self.a.lambda_n)
+                    for p in range(cgbf_b_nfunc):
+                        b_renorm_prefactor = RenormPrefactor(p, self.b.lambda_n)
+                        for q in range(cgbf_c_nfunc):
+                            c_renorm_prefactor = RenormPrefactor(q, self.c.lambda_n)
+                            for r in range(cgbf_d_nfunc):
+                                d_renorm_prefactor = RenormPrefactor(r, self.d.lambda_n)
+                                self.shell[s,p,q,r] *= a_renorm_prefactor * \
+                                                       b_renorm_prefactor * \
+                                                       c_renorm_prefactor * \
+                                                       d_renorm_prefactor
 
     def __dealloc__(self):
         free_libint(&self.libint_data)
+
 
 def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
     swap_ab = sum(cgbf_b.powers) > sum(cgbf_a.powers)
@@ -264,7 +264,7 @@ def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
     if swap_abcd:
         cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
 
-    shell = Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).build_ERI()
+    shell = Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).shell
 
     if swap_abcd:
         shell = np.swapaxes(shell,0,2)
