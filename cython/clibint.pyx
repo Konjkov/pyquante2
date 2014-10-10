@@ -10,19 +10,6 @@ from clibint cimport *
 
 init_libint_base()
 
-cdef ang(int i, int max_am, int[3] result):
-    """ Return n-th set of angular momentum indeces
-        for shell with angular momentum = max_am, in
-        the canonical LIBINT order.
-        Read libint manual for detail.
-    """
-    cdef int k, l
-    k = int((sqrt(8*i+1)-1)/2)
-    l = k*(k+1)/2
-    result[0] = max_am-k
-    result[1] = l + k - i
-    result[2] = i - l
-
 
 cdef double vec_dist2(double a[3], double b[3]):
     """ Vector distance
@@ -50,17 +37,27 @@ cdef double fact2(int k):
         return 1.0
 
 
-cdef double RenormPrefactor(int i, int max_am):
+cdef np.ndarray[double] RenormPrefactor(int lambda_n):
     """ This is a part of RenormPrefactor described in eq. (19)
         of libint manual.
-        Actualy it may be an iterator over set of angular momentum indeces.
+        The loop structure over (a_nx, a_ny) is used to generate angular
+        momentum indices in canonical LIBINT order for all members of a shell
+        of angular momentum lambda_n.
     """
+    cdef int i, a_nx, a_ny, an_x, an_y, an_z
+    prefactor = np.ones(shape=((lambda_n+1)*(lambda_n+2)/2), dtype=np.double)
+    i = 0
+    for a_nx in range(lambda_n+1):
+        for a_ny in range(a_nx+1):
+            an_x = lambda_n-a_nx
+            an_y = a_nx-a_ny
+            an_z = a_ny
 
-    cdef int res[3]
-    ang(i, max_am, res)
-    norm_constant = fact2(2 * max_am - 1)
-    norm_constant /= fact2(2 * res[0] - 1) * fact2(2 * res[1] - 1) * fact2(2 * res[2] - 1)
-    return sqrt(norm_constant)
+            norm_constant = fact2(2 * lambda_n - 1)
+            norm_constant /= fact2(2 * an_x - 1) * fact2(2 * an_y - 1) * fact2(2 * an_z - 1)
+            prefactor[i] = sqrt(norm_constant)
+            i += 1
+    return prefactor
 
 
 cdef Fm(int m, double x, double *buffer): # (13)
@@ -121,11 +118,11 @@ cdef class CGBF:
         PyMem_Free(self.norm_coef)
 
 
-cdef class Libint:
+cdef class ERI:
     cdef:
         Libint_t libint_data
         int max_num_prim_comb, max_am, sum_am
-        int memory_allocated, memory_required, primitive_number
+        int memory_allocated, memory_required
         CGBF a, b, c, d
         double dist2_AB, dist2_CD
         object shell
@@ -151,21 +148,25 @@ cdef class Libint:
         if memory_required<>memory_allocated:
             raise ValueError("memory allocation error")
 
-        for i in xrange(3):
-            self.libint_data.AB[i] = self.a.A[i] - self.b.A[i]
-            self.libint_data.CD[i] = self.c.A[i] - self.d.A[i]
-
         self.dist2_AB = vec_dist2(self.a.A, self.b.A)
         self.dist2_CD = vec_dist2(self.c.A, self.d.A)
 
-        primitive_number = 0
+        self.compute_libint()
+        self.build_shell()
+
+    cdef compute_libint(self):
+        cdef int primitive_number = 0
+
+        for i in range(3):
+            self.libint_data.AB[i] = self.a.A[i] - self.b.A[i]
+            self.libint_data.CD[i] = self.c.A[i] - self.d.A[i]
+
         for i in range(self.a.alpha_len):
             for j in range(self.b.alpha_len):
                 for k in range(self.c.alpha_len):
                     for l in range(self.d.alpha_len):
                         self.compute_primitive_data(i, j, k, l, &self.libint_data.PrimQuartet[primitive_number])
                         primitive_number += 1
-        self.build_ERI()
 
     cdef compute_primitive_data(self, int i, int j, int k, int l, prim_data *pdata):
         cdef:
@@ -216,10 +217,10 @@ cdef class Libint:
         for m in range(self.sum_am + 1):
             pdata.F[m] *= norm_coef # (17)
 
-    def build_ERI(self):
-        cdef int n, ijkl
+
+    cdef build_shell(self):
+        cdef int n
         cdef int cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc
-        cdef int s, p, q, r
         cdef double *eri
 
         if self.max_am==0:
@@ -227,26 +228,23 @@ cdef class Libint:
             for n in range(self.max_num_prim_comb):
                 self.shell[0,0,0,0] += self.libint_data.PrimQuartet[n].F[0]
         else:
+            eri = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)
+
             cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
             cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
             cgbf_c_nfunc = (self.c.lambda_n+1)*(self.c.lambda_n+2)/2
             cgbf_d_nfunc = (self.d.lambda_n+1)*(self.d.lambda_n+2)/2
-            eri = build_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libint_data, self.max_num_prim_comb)
             view = <np.double_t [:cgbf_a_nfunc,:cgbf_b_nfunc,:cgbf_c_nfunc,:cgbf_d_nfunc]> eri
+
             self.shell = np.asarray(view.copy())
-            if self.max_am>1:
-                for s in range(cgbf_a_nfunc):
-                    a_renorm_prefactor = RenormPrefactor(s, self.a.lambda_n)
-                    for p in range(cgbf_b_nfunc):
-                        b_renorm_prefactor = RenormPrefactor(p, self.b.lambda_n)
-                        for q in range(cgbf_c_nfunc):
-                            c_renorm_prefactor = RenormPrefactor(q, self.c.lambda_n)
-                            for r in range(cgbf_d_nfunc):
-                                d_renorm_prefactor = RenormPrefactor(r, self.d.lambda_n)
-                                self.shell[s,p,q,r] *= a_renorm_prefactor * \
-                                                       b_renorm_prefactor * \
-                                                       c_renorm_prefactor * \
-                                                       d_renorm_prefactor
+            if self.a.lambda_n > 1:
+                self.shell *= RenormPrefactor(self.a.lambda_n).reshape(-1, 1, 1, 1)
+            if self.b.lambda_n > 1:
+                self.shell *= RenormPrefactor(self.b.lambda_n).reshape(1, -1, 1, 1)
+            if self.c.lambda_n > 1:
+                self.shell *= RenormPrefactor(self.c.lambda_n).reshape(1, 1, -1, 1)
+            if self.d.lambda_n > 1:
+                self.shell *= RenormPrefactor(self.d.lambda_n).reshape(1, 1, 1, -1)
 
     def __dealloc__(self):
         free_libint(&self.libint_data)
@@ -264,7 +262,7 @@ def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
     if swap_abcd:
         cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
 
-    shell = Libint(cgbf_a, cgbf_b, cgbf_c, cgbf_d).shell
+    shell = ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d).shell
 
     if swap_abcd:
         shell = np.swapaxes(shell,0,2)
