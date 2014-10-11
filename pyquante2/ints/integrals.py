@@ -128,26 +128,25 @@ class libint_twoe_integrals(twoe_integrals):
         self._2e_ints = np.empty((nbf,nbf,nbf,nbf),'d')
         ints = self._2e_ints
 
-        for i,j,k,l in iiterator(nbf):
+        ints_jikl = np.transpose(ints, axes=(1,0,2,3))
+        ints_ijlk = np.transpose(ints, axes=(0,1,3,2))
+        ints_jilk = np.transpose(ints, axes=(1,0,3,2))
+        ints_klij = np.transpose(ints, axes=(2,3,0,1))
+        ints_lkij = np.transpose(ints, axes=(3,2,0,1))
+        ints_klji = np.transpose(ints, axes=(2,3,1,0))
+        ints_lkji = np.transpose(ints, axes=(3,2,1,0))
 
+        for i,j,k,l in iiterator(nbf):
             if bfs[i].is_first and bfs[j].is_first and bfs[k].is_first and bfs[l].is_first:
                 shell = Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l])
-                for s in range(i, i+bfs[i].nfunc):
-                    for p in range(j, j+bfs[j].nfunc):
-                        for q in range(k, k+bfs[k].nfunc):
-                            for r in range(l, l+bfs[l].nfunc):
-                                ints[s,p,q,r] = ints[p,s,q,r] = ints[s,p,r,q] = ints[p,s,r,q] = \
-                                ints[q,r,s,p] = ints[r,q,s,p] = ints[q,r,p,s] = \
-                                ints[r,q,p,s] = shell[s-i,p-j,q-k,r-l]
-                """no difference
-                ints[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
-                np.swapaxes(ints,0,1)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
-                np.swapaxes(ints,2,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
-                np.swapaxes(np.swapaxes(ints,0,1),2,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
-                np.swapaxes(np.swapaxes(ints,0,2),1,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
-                np.swapaxes(np.swapaxes(np.swapaxes(ints,0,2),1,3),0,1)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
-                np.swapaxes(np.swapaxes(np.swapaxes(ints,0,2),1,3),2,3)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = \
-                np.swapaxes(np.swapaxes(ints,0,3),1,2)[i:i+cgbf_a_nfunc,j:j+cgbf_b_nfunc,k:k+cgbf_c_nfunc,l:l+cgbf_d_nfunc] = shell"""
+                ints[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+                ints_jikl[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+                ints_ijlk[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+                ints_jilk[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+                ints_klij[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+                ints_lkij[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+                ints_klji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+                ints_lkji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = shell
 
 
 class onee_integrals(object):
