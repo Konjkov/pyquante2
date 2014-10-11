@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 
 import numpy as np
 cimport numpy as np
@@ -60,7 +60,7 @@ cdef np.ndarray[double] RenormPrefactor(int lambda_n):
     return prefactor
 
 
-cdef Fm(int m, double x, double *buffer): # (13)
+cdef void Fm(int m, double x, double *buffer): # (13)
     """Compute list of Boys Functions: F0(x), F1(x)...Fm(x).
        Reference: B.A. Mamedov, Journal of Mathematical Chemistry July 2004,
        Volume 36, Issue 3, pp 301-306.
