@@ -124,7 +124,6 @@ class libint_twoe_integrals(twoe_integrals):
     """
     def __init__(self,bfs):
         nbf = self.nbf = len(bfs)
-        print nbf
         self._2e_ints = np.empty((nbf,nbf,nbf,nbf),'d')
         ints = self._2e_ints
 
@@ -136,17 +135,16 @@ class libint_twoe_integrals(twoe_integrals):
         ints_klji = np.transpose(ints, axes=(2,3,1,0))
         ints_lkji = np.transpose(ints, axes=(3,2,1,0))
 
-        for i,j,k,l in iiterator(nbf):
-            if bfs[i].is_first and bfs[j].is_first and bfs[k].is_first and bfs[l].is_first:
-                shell = Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l])
-                ints[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
-                ints_jikl[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
-                ints_ijlk[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
-                ints_jilk[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
-                ints_klij[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
-                ints_lkij[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
-                ints_klji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
-                ints_lkji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = shell
+        for i,j,k,l in libint_iterator(bfs):
+            shell = Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l])
+            ints[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+            ints_jikl[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+            ints_ijlk[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+            ints_jilk[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+            ints_klij[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+            ints_lkij[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+            ints_klji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
+            ints_lkji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = shell
 
 
 class onee_integrals(object):
@@ -188,6 +186,18 @@ def iiterator(nbf):
             if ij <= kl:
                 yield i,j,k,l
     return
+
+
+def libint_iterator(bfs):
+    first_bfs = [i for i, b in enumerate(bfs) if b.is_first]
+    for i,j in pairs(first_bfs):
+        ij = i*(i+1)/2+j
+        for k,l in pairs(first_bfs):
+            kl = k*(k+1)/2+l
+            if ij <= kl:
+                yield i,j,k,l
+    return
+
 
 def iindex(i,j,k,l):
     """
