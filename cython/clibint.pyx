@@ -155,67 +155,71 @@ cdef class ERI:
         self.build_shell()
 
     cdef compute_libint(self):
-        cdef int primitive_number = 0
+        for m in range(3):
+            self.libint_data.AB[m] = self.a.A[m] - self.b.A[m]
+            self.libint_data.CD[m] = self.c.A[m] - self.d.A[m]
 
-        for i in range(3):
-            self.libint_data.AB[i] = self.a.A[i] - self.b.A[i]
-            self.libint_data.CD[i] = self.c.A[i] - self.d.A[i]
+        self.compute_primitive_data()
 
-        for i in range(self.a.alpha_len):
-            for j in range(self.b.alpha_len):
-                for k in range(self.c.alpha_len):
-                    for l in range(self.d.alpha_len):
-                        self.compute_primitive_data(i, j, k, l, &self.libint_data.PrimQuartet[primitive_number])
-                        primitive_number += 1
-
-    cdef compute_primitive_data(self, int i, int j, int k, int l, prim_data *pdata):
+    cdef compute_primitive_data(self):
         cdef:
+            int primitive_number = 0
             int m
             double zeta, eta, rho
             double P[3]
             double Q[3]
             double W[3]
+            prim_data *pdata
 
-        zeta = self.a.alpha[i] + self.b.alpha[j] # (7)
-        eta = self.c.alpha[k] + self.d.alpha[l]  # (8)
-        rho = zeta * eta / (zeta + eta)          # (9)
+        for i in range(self.a.alpha_len):
+            for j in range(self.b.alpha_len):
+                for k in range(self.c.alpha_len):
+                    for l in range(self.d.alpha_len):
 
-        for m in range(3):
-            P[m] = (self.a.A[m] * self.a.alpha[i] + self.b.A[m] * self.b.alpha[j]) / zeta # (10)
-            Q[m] = (self.c.A[m] * self.c.alpha[k] + self.d.A[m] * self.d.alpha[l]) / eta  # (11)
-            W[m] = (P[m] * zeta + Q[m] * eta) / (zeta + eta)                              # (12)
-            pdata.U[0][m] = P[m] - self.a.A[m]
-            #pdata.U[1][m] = P[m] - B[m] # libderiv
-            #pdata.U[1][m] = Q[m] - A[m] # lib12
-            pdata.U[2][m] = Q[m] - self.c.A[m]
-            #pdata.U[3][m] = Q[m] - D[m] # libderiv
-            #pdata.U[3][m] = P[m] - C[m] # lib12
-            pdata.U[4][m] = W[m] - P[m]
-            pdata.U[5][m] = W[m] - Q[m]
+                        pdata = &self.libint_data.PrimQuartet[primitive_number]
 
-        pdata.twozeta_a = 2 * self.a.alpha[i]
-        pdata.twozeta_b = 2 * self.b.alpha[j]
-        pdata.twozeta_c = 2 * self.c.alpha[k]
-        pdata.twozeta_d = 2 * self.d.alpha[l]
-        pdata.oo2z = 1.0 / (2 * zeta)
-        pdata.oo2n = 1.0 / (2 * eta)
-        pdata.oo2zn = 1.0 / (2 * (zeta + eta))
-        pdata.poz = rho / zeta
-        pdata.pon = rho / eta
-        pdata.oo2p = 1.0 / (2 * rho)
-        #pdata.ss_r12_ss = 0.0 # lib12
+                        zeta = self.a.alpha[i] + self.b.alpha[j] # (7)
+                        eta = self.c.alpha[k] + self.d.alpha[l]  # (8)
+                        rho = zeta * eta / (zeta + eta)          # (9)
 
-        Ca = self.a.norm_coef[i]
-        Cb = self.b.norm_coef[j]
-        Cc = self.c.norm_coef[k]
-        Cd = self.d.norm_coef[l]
-        S12 = sqrt(M_PI / zeta) * (M_PI / zeta) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
-        S34 = sqrt(M_PI / eta) * (M_PI / eta) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD)   # (16)
-        norm_coef = 2 * sqrt(rho / M_PI) * S12 * S34  * Ca * Cb * Cc * Cd
+                        for m in range(3):
+                            P[m] = (self.a.A[m] * self.a.alpha[i] + self.b.A[m] * self.b.alpha[j]) / zeta # (10)
+                            Q[m] = (self.c.A[m] * self.c.alpha[k] + self.d.A[m] * self.d.alpha[l]) / eta  # (11)
+                            W[m] = (P[m] * zeta + Q[m] * eta) / (zeta + eta)                              # (12)
+                            pdata.U[0][m] = P[m] - self.a.A[m]
+                            #pdata.U[1][m] = P[m] - B[m] # libderiv
+                            #pdata.U[1][m] = Q[m] - A[m] # lib12
+                            pdata.U[2][m] = Q[m] - self.c.A[m]
+                            #pdata.U[3][m] = Q[m] - D[m] # libderiv
+                            #pdata.U[3][m] = P[m] - C[m] # lib12
+                            pdata.U[4][m] = W[m] - P[m]
+                            pdata.U[5][m] = W[m] - Q[m]
 
-        Fm(self.sum_am, rho * vec_dist2(P, Q), pdata.F) #(13)
-        for m in range(self.sum_am + 1):
-            pdata.F[m] *= norm_coef # (17)
+                        pdata.twozeta_a = 2 * self.a.alpha[i]
+                        pdata.twozeta_b = 2 * self.b.alpha[j]
+                        pdata.twozeta_c = 2 * self.c.alpha[k]
+                        pdata.twozeta_d = 2 * self.d.alpha[l]
+                        pdata.oo2z = 1.0 / (2 * zeta)
+                        pdata.oo2n = 1.0 / (2 * eta)
+                        pdata.oo2zn = 1.0 / (2 * (zeta + eta))
+                        pdata.poz = rho / zeta
+                        pdata.pon = rho / eta
+                        pdata.oo2p = 1.0 / (2 * rho)
+                        #pdata.ss_r12_ss = 0.0 # lib12
+
+                        Ca = self.a.norm_coef[i]
+                        Cb = self.b.norm_coef[j]
+                        Cc = self.c.norm_coef[k]
+                        Cd = self.d.norm_coef[l]
+                        S12 = sqrt(M_PI / zeta) * (M_PI / zeta) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
+                        S34 = sqrt(M_PI / eta) * (M_PI / eta) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD)   # (16)
+                        norm_coef = 2 * sqrt(rho / M_PI) * S12 * S34  * Ca * Cb * Cc * Cd
+
+                        Fm(self.sum_am, rho * vec_dist2(P, Q), pdata.F) #(13)
+                        for m in range(self.sum_am + 1):
+                            pdata.F[m] *= norm_coef # (17)
+
+                        primitive_number += 1
 
 
     cdef build_shell(self):
