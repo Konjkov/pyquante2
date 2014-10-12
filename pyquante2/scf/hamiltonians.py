@@ -9,6 +9,7 @@ class hamiltonian(object):
     def __init__(self, geo, bfs, libint=False):
         self.geo = geo
         self.bfs = bfs
+        self.Enuc = self.geo.nuclear_repulsion()
         self.i1 = onee_integrals(bfs,geo)
         if libint:
             self.i2 = libint_twoe_integrals(bfs)
@@ -83,41 +84,39 @@ class rhf(hamiltonian):
     """
     name = 'RHF'
 
-    def update(self,D):
-        Enuc = self.geo.nuclear_repulsion()
-        h = self.i1.T + self.i1.V
-        Eone = 2 * trace2(h,D)
-        G = self.i2.get_2jk(D)
-        H = h + G
-        Etwo = trace2(D,G)
-        self.energy = Enuc + Eone + Etwo
-        E,c = geigh(H,self.i1.S)
-        self.orbe = E
-        self.orbs = c
-        return c
+    def update(self, D):
+        h = self.i1.T + self.i1.V    # 1-e Hamiltonian
+        G = self.i2.get_2jk(D)       # 2-e part of Fock matrix
+        F = h + G                    # Fock matrix
+        self.orbe, self.orbs = geigh(F, self.i1.S)
+        Eone = 2 * trace2(h, D)
+        Etwo = trace2(D, G)
+        self.energy = self.Enuc + Eone + Etwo
+        return self.orbs
 
 class rdft(rhf):
     "Hamiltonian for DFT calculations. Adds a grid to RHF iterator."
-    def __init__(self,geo,bfs):
+    name = 'DFT'
+
+    def __init__(self, geo, bfs):
         rhf.__init__(self,geo,bfs)
         self.grid = grid(geo)
         # make grid here.
 
     def update(self,D):
-        self.energy = self.geo.nuclear_repulsion()
-        H = self.i1.T + self.i1.V
-        self.energy += trace2(H,D)
+        h = self.i1.T + self.i1.V
         J = self.i2.get_2j(D)
-        H = H + J
+        F = H + J
 
         # XC = ???
-        # H = H + XC
+        # F = F + XC
 
-        self.energy += trace2(H,D)
-        E,c = geigh(H,self.i1.S)
-        self.orbe = E
-        self.orbs = c
-        return c
+        self.orbe, self.orbs = geigh(F, self.i1.S)
+        Eone = 2 * trace2(h, D)
+        Etwo = trace2(D, G)
+        Exc = 0.0
+        self.energy = self.Enuc + Eone + Etwo + Exc
+        return self.orbs
 
 class rohf(rhf):
     """Hamiltonian for ROHF calculations. Adds shells information
@@ -127,6 +126,8 @@ class rohf(rhf):
     >>> h2_singlet = rohf(h2,bfs,[1],[1])
     >>> h2_triplet = rohf(h2,bfs,[1,1],[0.5,0.5])
     """
+    name = 'ROHF'
+
     def __init__(self,geo,bfs,norbsh=[],fi=[]):
         rhf.__init__(self,geo,bfs)
         self.norbsh = norbsh
@@ -149,22 +150,20 @@ class uhf(hamiltonian):
     def converge(self,iterator=USCFIterator,**kwargs):
         return hamiltonian.converge(self,iterator,**kwargs)
 
-    def update(self,Da,Db):
-        self.energy = self.geo.nuclear_repulsion()
+    def update(self, Da, Db):
         h = self.i1.T + self.i1.V
-        self.energy += trace2(Da+Db,h)/2
-        Ja,Ka = self.i2.get_j(Da),self.i2.get_k(Da)
-        Jb,Kb = self.i2.get_j(Db),self.i2.get_k(Db)
-        Fa = h + Ja + Jb - Ka
-        Fb = h + Ja + Jb - Kb
-        orbea,ca = geigh(Fa,self.i1.S)
-        orbeb,cb = geigh(Fb,self.i1.S)
-        self.energy += trace2(Fa,Da)/2 + trace2(Fb,Db)/2
-        self.orbea = orbea
-        self.orbsa = ca
-        self.orbeb = orbeb
-        self.orbsb = cb
-        return ca,cb
+        J = self.i2.get_j(Da+Db)
+        Ka, Kb = self.i2.get_k(Da), self.i2.get_k(Db)
+        Ga = J - Ka
+        Gb = J - Kb
+        Fa = h + Ga
+        Fb = h + Gb
+        self.orbea, self.orbsa = geigh(Fa, self.i1.S)
+        self.orbeb, self.orbsb = geigh(Fb, self.i1.S)
+        Eone = trace2(Da+Db, h)
+        Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
+        self.energy = self.Enuc + Eone + Etwo
+        return self.orbsa, self.orbsb
 
 if __name__ == '__main__':
     import doctest; doctest.testmod()

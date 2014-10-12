@@ -57,18 +57,23 @@ class AveragingIterator(SCFIterator):
     def __init__(self,H,c=None,fraction=0.5,tol=1e-5,maxiters=100):
         SCFIterator.__init__(self,H,c,tol,maxiters)
         self.fraction = fraction
-        self.Dold = dmat(self.c,self.H.geo.nocc())
+        self.Dold = None
         return
 
     def __next__(self):
-        D = (1-self.fraction)*self.Dold + self.fraction*dmat(self.c,self.H.geo.nocc())
-        self.Dold = D
+        self.iterations += 1
+        if self.iterations > self.maxiters:
+            raise StopIteration
+        D = dmat(self.c,self.H.geo.nocc())
+        if self.Dold is not None:
+            D = (1-self.fraction)*self.Dold + self.fraction*D
         self.c = self.H.update(D)
         E = self.H.energy
         if abs(E-self.Eold) < self.tol:
             self.converged = True
             raise StopIteration
         self.Eold = E
+        self.Dold = D
         return E
 
 if __name__ == '__main__':
