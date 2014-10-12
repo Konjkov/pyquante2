@@ -7,7 +7,7 @@ except:
     print("Couldn't find cython int routine")
     from pyquante2.ints.hgp import ERI_hgp as ERI
 
-from pyquante2.clibint import Permutable_ERI
+from pyquante2.clibint import Libint_ERI
 
 try:
     from pyquante2.cone import S,T,V
@@ -122,7 +122,7 @@ class libint_twoe_integrals(twoe_integrals):
     >>> twoe_integrals(bfs)
     array([ 0.77460594])
     """
-    def __init__(self,bfs):
+    def __init__(self, bfs):
         nbf = self.nbf = len(bfs)
         self._2e_ints = np.empty((nbf,nbf,nbf,nbf),'d')
         ints = self._2e_ints
@@ -136,7 +136,8 @@ class libint_twoe_integrals(twoe_integrals):
         ints_lkji = np.transpose(ints, axes=(3,2,1,0))
 
         for i,j,k,l in libint_iterator(bfs):
-            shell = Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l])
+        # TODO: sort i,j,k,l so did't need permutation
+            shell = self.Permutable_ERI(bfs[i], bfs[j], bfs[k], bfs[l])
             ints[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
             ints_jikl[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
             ints_ijlk[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
@@ -145,6 +146,29 @@ class libint_twoe_integrals(twoe_integrals):
             ints_lkij[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
             ints_klji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = \
             ints_lkji[i:i+bfs[i].nfunc,j:j+bfs[j].nfunc,k:k+bfs[k].nfunc,l:l+bfs[l].nfunc] = shell
+
+    def Permutable_ERI(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+        swap_ab = sum(cgbf_b.powers) > sum(cgbf_a.powers)
+        swap_cd = sum(cgbf_d.powers) > sum(cgbf_c.powers)
+        swap_abcd = sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers)
+
+        if swap_ab:
+            cgbf_a, cgbf_b = cgbf_b, cgbf_a
+        if swap_cd:
+            cgbf_c, cgbf_d = cgbf_d, cgbf_c
+        if swap_abcd:
+            cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
+
+        shell = Libint_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d)
+
+        if swap_abcd:
+            shell = np.swapaxes(shell,0,2)
+            shell = np.swapaxes(shell,1,3)
+        if swap_cd:
+            shell = np.swapaxes(shell,2,3)
+        if swap_ab:
+            shell = np.swapaxes(shell,0,1)
+        return shell
 
 
 class onee_integrals(object):
@@ -231,6 +255,3 @@ def iindex(i,j,k,l):
 
 if __name__ == '__main__':
     import doctest; doctest.testmod()
-
-
-
