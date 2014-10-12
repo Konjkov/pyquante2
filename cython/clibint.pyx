@@ -118,14 +118,16 @@ cdef class CGBF:
         PyMem_Free(self.norm_coef)
 
 
-cdef class ERI:
+cdef class Libint:
+    """
+        mode = 0 - compute ERI
+        mode = 1 - compute Deriv
+        mode = 2 - compute r12
+    """
     cdef:
-        Libint_t libint_data
         int max_num_prim_comb, max_am, sum_am
-        int memory_allocated, memory_required
+        int mode
         CGBF a, b, c, d
-        double dist2_AB, dist2_CD
-        object shell
 
     def __cinit__(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
         self.a = CGBF(cgbf_a)
@@ -143,6 +145,16 @@ cdef class ERI:
         self.max_am = max(self.a.lambda_n, self.b.lambda_n, self.c.lambda_n, self.d.lambda_n)
         self.sum_am = self.a.lambda_n + self.b.lambda_n + self.c.lambda_n + self.d.lambda_n
 
+
+cdef class ERI(Libint):
+    cdef:
+        Libint_t libint_data
+        double dist2_AB, dist2_CD
+        object shell
+        int memory_allocated, memory_required
+
+    def __cinit__(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+        self.mode=0
         memory_required = libint_storage_required(self.max_am, self.max_num_prim_comb)
         memory_allocated = init_libint(&self.libint_data, self.max_am, self.max_num_prim_comb)
         if memory_required<>memory_allocated:
@@ -150,20 +162,27 @@ cdef class ERI:
 
         self.dist2_AB = vec_dist2(self.a.A, self.b.A)
         self.dist2_CD = vec_dist2(self.c.A, self.d.A)
+        self.compute_ERI()
 
-        self.compute_libint()
-        self.build_shell()
 
-    cdef compute_libint(self):
+    cdef compute_ERI(self):
         for m in range(3):
             self.libint_data.AB[m] = self.a.A[m] - self.b.A[m]
             self.libint_data.CD[m] = self.c.A[m] - self.d.A[m]
+        self.compute_primquartets()
+        self.build_shell()
 
-        self.compute_primitive_data()
 
-    cdef compute_primitive_data(self):
+    cdef compute_primquartets(self):
+        for i in range(self.a.alpha_len):
+            for j in range(self.b.alpha_len):
+                for k in range(self.c.alpha_len):
+                    for l in range(self.d.alpha_len):
+                        self.compute_primitive_data(i, j, k, l)
+
+
+    cdef compute_primitive_data(self, int i, int j, int k, int l):
         cdef:
-            int primitive_number = 0
             int m
             double zeta, eta, rho
             double P[3]
@@ -171,55 +190,54 @@ cdef class ERI:
             double W[3]
             prim_data *pdata
 
-        for i in range(self.a.alpha_len):
-            for j in range(self.b.alpha_len):
-                for k in range(self.c.alpha_len):
-                    for l in range(self.d.alpha_len):
+        pdata = &self.libint_data.PrimQuartet[(((i*self.b.alpha_len)+j)*self.c.alpha_len+k)*self.d.alpha_len+l]
 
-                        pdata = &self.libint_data.PrimQuartet[primitive_number]
+        zeta = self.a.alpha[i] + self.b.alpha[j] # (7)
+        eta = self.c.alpha[k] + self.d.alpha[l]  # (8)
+        rho = zeta * eta / (zeta + eta)          # (9)
 
-                        zeta = self.a.alpha[i] + self.b.alpha[j] # (7)
-                        eta = self.c.alpha[k] + self.d.alpha[l]  # (8)
-                        rho = zeta * eta / (zeta + eta)          # (9)
+        for m in range(3):
+            P[m] = (self.a.A[m] * self.a.alpha[i] + self.b.A[m] * self.b.alpha[j]) / zeta # (10)
+            Q[m] = (self.c.A[m] * self.c.alpha[k] + self.d.A[m] * self.d.alpha[l]) / eta  # (11)
+            W[m] = (P[m] * zeta + Q[m] * eta) / (zeta + eta)                              # (12)
+            pdata.U[0][m] = P[m] - self.a.A[m]
+            if self.mode==1:
+                pdata.U[1][m] = P[m] - self.b.A[m] # libderiv
+            elif self.mode ==2:
+                pdata.U[1][m] = Q[m] - self.a.A[m] # lib12
+            pdata.U[2][m] = Q[m] - self.c.A[m]
+            if self.mode==1:
+                pdata.U[3][m] = Q[m] - self.d.A[m] # libderiv
+            elif self.mode ==2:
+                pdata.U[3][m] = P[m] - self.c.A[m] # lib12
+            pdata.U[4][m] = W[m] - P[m]
+            pdata.U[5][m] = W[m] - Q[m]
 
-                        for m in range(3):
-                            P[m] = (self.a.A[m] * self.a.alpha[i] + self.b.A[m] * self.b.alpha[j]) / zeta # (10)
-                            Q[m] = (self.c.A[m] * self.c.alpha[k] + self.d.A[m] * self.d.alpha[l]) / eta  # (11)
-                            W[m] = (P[m] * zeta + Q[m] * eta) / (zeta + eta)                              # (12)
-                            pdata.U[0][m] = P[m] - self.a.A[m]
-                            #pdata.U[1][m] = P[m] - B[m] # libderiv
-                            #pdata.U[1][m] = Q[m] - A[m] # lib12
-                            pdata.U[2][m] = Q[m] - self.c.A[m]
-                            #pdata.U[3][m] = Q[m] - D[m] # libderiv
-                            #pdata.U[3][m] = P[m] - C[m] # lib12
-                            pdata.U[4][m] = W[m] - P[m]
-                            pdata.U[5][m] = W[m] - Q[m]
+        Ca = self.a.norm_coef[i]
+        Cb = self.b.norm_coef[j]
+        Cc = self.c.norm_coef[k]
+        Cd = self.d.norm_coef[l]
+        S12 = sqrt(M_PI / zeta) * (M_PI / zeta) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
+        S34 = sqrt(M_PI / eta) * (M_PI / eta) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD)   # (16)
+        norm_coef = 2 * sqrt(rho / M_PI) * S12 * S34  * Ca * Cb * Cc * Cd
 
-                        pdata.twozeta_a = 2 * self.a.alpha[i]
-                        pdata.twozeta_b = 2 * self.b.alpha[j]
-                        pdata.twozeta_c = 2 * self.c.alpha[k]
-                        pdata.twozeta_d = 2 * self.d.alpha[l]
-                        pdata.oo2z = 1.0 / (2 * zeta)
-                        pdata.oo2n = 1.0 / (2 * eta)
-                        pdata.oo2zn = 1.0 / (2 * (zeta + eta))
-                        pdata.poz = rho / zeta
-                        pdata.pon = rho / eta
-                        pdata.oo2p = 1.0 / (2 * rho)
-                        #pdata.ss_r12_ss = 0.0 # lib12
+        Fm(self.sum_am, rho * vec_dist2(P, Q), pdata.F) #(13)
+        for m in range(self.sum_am + self.mode + 1):
+            pdata.F[m] *= norm_coef # (17)
 
-                        Ca = self.a.norm_coef[i]
-                        Cb = self.b.norm_coef[j]
-                        Cc = self.c.norm_coef[k]
-                        Cd = self.d.norm_coef[l]
-                        S12 = sqrt(M_PI / zeta) * (M_PI / zeta) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
-                        S34 = sqrt(M_PI / eta) * (M_PI / eta) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD)   # (16)
-                        norm_coef = 2 * sqrt(rho / M_PI) * S12 * S34  * Ca * Cb * Cc * Cd
-
-                        Fm(self.sum_am, rho * vec_dist2(P, Q), pdata.F) #(13)
-                        for m in range(self.sum_am + 1):
-                            pdata.F[m] *= norm_coef # (17)
-
-                        primitive_number += 1
+        if self.mode>0:
+            pdata.twozeta_a = 2 * self.a.alpha[i]
+            pdata.twozeta_b = 2 * self.b.alpha[j]
+            pdata.twozeta_c = 2 * self.c.alpha[k]
+            pdata.twozeta_d = 2 * self.d.alpha[l]
+        pdata.oo2z = 1.0 / (2 * zeta)
+        pdata.oo2n = 1.0 / (2 * eta)
+        pdata.oo2zn = 1.0 / (2 * (zeta + eta))
+        pdata.poz = rho / zeta
+        pdata.pon = rho / eta
+        pdata.oo2p = 1.0 / (2 * rho)
+        if self.mode==2:
+            pdata.ss_r12_ss = pdata.F[0]/rho + vec_dist2(P, Q) * (pdata.F[0] - pdata.F[1]) # lib12
 
 
     cdef build_shell(self):
@@ -253,26 +271,49 @@ cdef class ERI:
     def __dealloc__(self):
         free_libint(&self.libint_data)
 
+def Libint_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+    return ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d).shell
 
-def Permutable_ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
-    swap_ab = sum(cgbf_b.powers) > sum(cgbf_a.powers)
-    swap_cd = sum(cgbf_d.powers) > sum(cgbf_c.powers)
-    swap_abcd = sum(cgbf_a.powers) + sum(cgbf_b.powers) > sum(cgbf_c.powers) + sum(cgbf_d.powers)
 
-    if swap_ab:
-        cgbf_a, cgbf_b = cgbf_b, cgbf_a
-    if swap_cd:
-        cgbf_c, cgbf_d = cgbf_d, cgbf_c
-    if swap_abcd:
-        cgbf_a, cgbf_b, cgbf_c, cgbf_d = cgbf_c, cgbf_d, cgbf_a, cgbf_b
+cdef class Deriv1(Libint):
+    cdef:
+        Libderiv_t libderiv_data
+        double dist2_AB, dist2_CD
+        object deriv1
+        int memory_allocated, memory_required
+        int max_cart_class_size
 
-    shell = ERI(cgbf_a, cgbf_b, cgbf_c, cgbf_d).shell
+    def __cinit__(self, cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+        self.mode=1
+        self.max_cart_class_size = self.a.lambda_n * self.b.lambda_n * self.c.lambda_n * self.d.lambda_n
+        memory_required = libderiv1_storage_required(self.max_am, self.max_num_prim_comb, self.max_cart_class_size)
+        memory_allocated = init_libderiv1(&self.libderiv_data, self.max_am, self.max_num_prim_comb, self.max_cart_class_size)
+        if memory_required<>memory_allocated:
+            raise ValueError("memory allocation error")
 
-    if swap_abcd:
-        shell = np.swapaxes(shell,0,2)
-        shell = np.swapaxes(shell,1,3)
-    if swap_cd:
-        shell = np.swapaxes(shell,2,3)
-    if swap_ab:
-        shell = np.swapaxes(shell,0,1)
-    return shell
+        self.dist2_AB = vec_dist2(self.a.A, self.b.A)
+        self.dist2_CD = vec_dist2(self.c.A, self.d.A)
+
+    cdef compute_deriv1(self):
+        for m in range(3):
+            self.libderiv1_data.AB[m] = self.a.A[m] - self.b.A[m]
+            self.libderiv1_data.CD[m] = self.c.A[m] - self.d.A[m]
+        self.compute_primquartets()
+        self.build_deriv1()
+
+    cdef build_deriv1(self):
+
+        cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
+        cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
+        cgbf_c_nfunc = (self.c.lambda_n+1)*(self.c.lambda_n+2)/2
+        cgbf_d_nfunc = (self.d.lambda_n+1)*(self.d.lambda_n+2)/2
+
+        build_deriv1_eri[self.a.lambda_n][self.b.lambda_n][self.c.lambda_n][self.d.lambda_n](&self.libderiv_data, self.max_num_prim_comb)
+        #view = <np.double_t [:cgbf_a_nfunc,:cgbf_b_nfunc,:cgbf_c_nfunc,:cgbf_d_nfunc]> self.libderiv_data.ABCD
+        #self.deriv1 = np.asarray(view.copy())
+
+    def __dealloc__(self):
+        free_libderiv(&self.libderiv_data)
+
+def Libint_Deriv1(cgbf_a, cgbf_b, cgbf_c, cgbf_d):
+    return Deriv1(cgbf_a, cgbf_b, cgbf_c, cgbf_d).deriv1
