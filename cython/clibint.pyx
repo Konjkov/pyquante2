@@ -1,4 +1,5 @@
 # cython: profile=False
+# cython: cdivision=True
 
 import numpy as np
 cimport numpy as np
@@ -165,7 +166,7 @@ cdef class ERI(Libint):
         self.compute_ERI()
 
 
-    cdef compute_ERI(self):
+    cdef void compute_ERI(self):
         for m in range(3):
             self.libint_data.AB[m] = self.a.A[m] - self.b.A[m]
             self.libint_data.CD[m] = self.c.A[m] - self.d.A[m]
@@ -173,7 +174,7 @@ cdef class ERI(Libint):
         self.build_shell()
 
 
-    cdef compute_primquartets(self):
+    cdef void compute_primquartets(self):
         for i in range(self.a.alpha_len):
             for j in range(self.b.alpha_len):
                 for k in range(self.c.alpha_len):
@@ -181,7 +182,7 @@ cdef class ERI(Libint):
                         self.compute_primitive_data(i, j, k, l)
 
 
-    cdef compute_primitive_data(self, int i, int j, int k, int l):
+    cdef void compute_primitive_data(self, int i, int j, int k, int l):
         cdef:
             int m
             double zeta, eta, rho
@@ -240,7 +241,7 @@ cdef class ERI(Libint):
             pdata.ss_r12_ss = pdata.F[0]/rho + vec_dist2(P, Q) * (pdata.F[0] - pdata.F[1]) # lib12
 
 
-    cdef build_shell(self):
+    cdef void build_shell(self):
         cdef int n
         cdef int cgbf_a_nfunc, cgbf_b_nfunc, cgbf_c_nfunc, cgbf_d_nfunc
         cdef double *eri
@@ -294,14 +295,14 @@ cdef class Deriv1(Libint):
         self.dist2_AB = vec_dist2(self.a.A, self.b.A)
         self.dist2_CD = vec_dist2(self.c.A, self.d.A)
 
-    cdef compute_deriv1(self):
+    cdef void compute_deriv1(self):
         for m in range(3):
             self.libderiv1_data.AB[m] = self.a.A[m] - self.b.A[m]
             self.libderiv1_data.CD[m] = self.c.A[m] - self.d.A[m]
         self.compute_primquartets()
         self.build_deriv1()
 
-    cdef build_deriv1(self):
+    cdef void build_deriv1(self):
 
         cgbf_a_nfunc = (self.a.lambda_n+1)*(self.a.lambda_n+2)/2
         cgbf_b_nfunc = (self.b.lambda_n+1)*(self.b.lambda_n+2)/2
