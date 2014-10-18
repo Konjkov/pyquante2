@@ -128,7 +128,6 @@ class test_uhf_energy(unittest.TestCase, PyQuanteAssertions):
         bfs = basisset(CF3,'sto-3g')
         solver = uhf(CF3,bfs,libint=True)
         ens = solver.converge()
-        print ens
         self.assertPrecisionEqual(solver.energy, -331.480688906400, prec=4e-8)
 
 
@@ -139,12 +138,11 @@ def runsuite(verbose=True):
     else: verbosity=1
     # If you want more output, uncomment this line:
     logging.basicConfig(format="%(message)s",level=logging.DEBUG)
-    suite = unittest.TestLoader().loadTestsFromTestCase(test_uhf_energy)
+    suite = unittest.TestLoader().loadTestsFromTestCase(test_rhf_energy)
     unittest.TextTestRunner(verbosity=verbosity).run(suite)
     # Running without verbosity is equivalent to replacing the above
     # two lines with the following:
     #unittest.main()
-    return
 
 
 def debugsuite():
