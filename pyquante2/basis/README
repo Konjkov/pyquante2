@@ -5,3 +5,6 @@ svn checkout https://svn.pnl.gov/svn/nwchem/trunk/src/basis/libraries/
 
 usefull forum:
 http://www.nwchem-sw.org/index.php/Special:AWCforum/sf/id10/General_BSE_Topics.html
+
+Basis set file define set of unnormalized contracted cartesian or sperical shells for each atom
+in format described http://www.ccl.net/cca/documents/basis-sets/basis.html
