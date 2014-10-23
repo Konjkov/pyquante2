@@ -104,7 +104,13 @@ class twoe_integrals(object):
 
     def transform(self,c): return np.einsum('aI,bJ,cK,dL,abcd->IJKL',c,c,c,c,self._2e_ints)
     def transform_mp2(self,c,nocc):
-        return np.einsum('aI,bJ,cK,dL,abcd->IJKL',c[:,:nocc],c,c[:,:nocc],c,self._2e_ints)
+        transform_1 = np.einsum('aI, abcd->Ibcd', c[:,:nocc], self._2e_ints)
+        transform_2 = np.einsum('bJ, abcd->aJcd', c, transform_1)
+        transform_3 = np.einsum('cK, abcd->abKd', c[:,:nocc], transform_2)
+        transform_4 = np.einsum('dL, abcd->abcL', c, transform_3)
+        return transform_4
+        # Thie is very slow
+        # return np.einsum('aI,bJ,cK,dL,abcd->IJKL',c[:,:nocc],c,c[:,:nocc],c,self._2e_ints)
 
 
     # This turns out to be slower:
