@@ -33,7 +33,7 @@ N8 = read_xyz('./molfiles/N8.xyz')
 CF3 = read_xyz('./molfiles/CF3.xyz')
 
 class PyQuanteAssertions:
-    def assertPrecisionEqual(self, a, b, prec=2e-8):
+    def assertPrecisionEqual(self, a, b, prec=1e-8):
         x = abs(2*(a-b)/(a+b))
         if x > prec:
             raise AssertionError("%.9f is equal %.9f with precision %.9f)" % (a, b, x))
@@ -128,7 +128,7 @@ class test_uhf_energy(unittest.TestCase, PyQuanteAssertions):
         bfs = basisset(CF3,'sto-3g')
         solver = uhf(CF3,bfs,libint=True)
         ens = solver.converge()
-        self.assertPrecisionEqual(solver.energy, -331.480688906400, prec=4e-8)
+        self.assertPrecisionEqual(solver.energy, -331.480688906400)
 
 
 def runsuite(verbose=True):
