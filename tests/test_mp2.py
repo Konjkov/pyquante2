@@ -19,7 +19,7 @@ class PyQuanteAssertions:
 class test_mp2(unittest.TestCase, PyQuanteAssertions):
     def test_H2(self):
         bfs = basisset(h2,'cc-pvdz')
-        solver=rhf(h2,bfs)
+        solver=rhf(h2, bfs, libint=True)
         solver.converge()
         nvirt = len(bfs)-h2.nocc()
         emp2 = mp2(solver.i2,solver.orbs,solver.orbe,h2.nocc(),nvirt)
