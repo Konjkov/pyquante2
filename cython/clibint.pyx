@@ -97,26 +97,20 @@ cdef class CGBF:
     cdef:
         int alpha_len # num's of primitives
         int lambda_n  # orbital quantum number of CGBF, sum of nx, ny, nz
-        double A[3]   # coordinates CGBF centered at
+        double *A     # coordinates CGBF centered at
         double *alpha # orbital exponents
-        double *norm_coef # normalization-including contraction coefficients (4)
+        double *norm  # normalization coefficients (4)
+        double *coef  # contraction coefficients (4)
 
     def __cinit__(self, cgbf):
         if cgbf.powers[1] + cgbf.powers[2] > 0:
             raise ValueError("Only first primitive function in a shell permitted")
-        for i in range(3):
-            self.A[i] = cgbf.origin[i]
+        self.A = <double *>np.PyArray_DATA(cgbf.origin)
         self.lambda_n = cgbf.powers[0]
         self.alpha_len = len(cgbf.pexps)
-        self.alpha = <double *> PyMem_Malloc(self.alpha_len * sizeof(double))
-        self.norm_coef = <double *> PyMem_Malloc(self.alpha_len * sizeof(double))
-        for i in range(self.alpha_len):
-            self.alpha[i] = cgbf.pexps[i]
-            self.norm_coef[i] = cgbf.pnorms[i] * cgbf.coefs[i]
-
-    def __dealloc__(self):
-        PyMem_Free(self.alpha)
-        PyMem_Free(self.norm_coef)
+        self.alpha = <double *>np.PyArray_DATA(cgbf.pexps)
+        self.norm = <double *>np.PyArray_DATA(cgbf.pnorms)
+        self.coef = <double *>np.PyArray_DATA(cgbf.coefs)
 
 
 cdef class Libint:
@@ -214,10 +208,10 @@ cdef class ERI(Libint):
             pdata.U[4][m] = W[m] - P[m]
             pdata.U[5][m] = W[m] - Q[m]
 
-        Ca = self.a.norm_coef[i]
-        Cb = self.b.norm_coef[j]
-        Cc = self.c.norm_coef[k]
-        Cd = self.d.norm_coef[l]
+        Ca = self.a.norm[i] * self.a.coef[i]
+        Cb = self.b.norm[j] * self.b.coef[j]
+        Cc = self.c.norm[k] * self.c.coef[k]
+        Cd = self.d.norm[l] * self.d.coef[l]
         S12 = sqrt(M_PI / zeta) * (M_PI / zeta) * exp(- self.a.alpha[i] * self.b.alpha[j] / zeta * self.dist2_AB) # (15)
         S34 = sqrt(M_PI / eta) * (M_PI / eta) * exp(- self.c.alpha[k] * self.d.alpha[l] / eta * self.dist2_CD)   # (16)
         norm_coef = 2 * sqrt(rho / M_PI) * S12 * S34  * Ca * Cb * Cc * Cd
