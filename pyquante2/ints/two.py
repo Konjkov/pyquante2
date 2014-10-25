@@ -113,5 +113,3 @@ def fact_ratio2(a,b): return factorial(a)/factorial(b)/factorial(a-2*b)
 
 if __name__ == '__main__':
     import doctest; doctest.testmod()
-
-

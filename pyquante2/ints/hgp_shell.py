@@ -235,7 +235,7 @@ def vrr_shell_2(aexpn,xyza,bexpn,xyzb,cexpn,xyzc,dexpn,xyzd,maxa,maxc):
            xyzw[0]-xyzq[0],xyzw[1]-xyzq[1],xyzw[2]-xyzq[2])
     ze = (eta,eta,eta,zeta,zeta,zeta)
     zezpe = [zei/zpe for zei in ze]
-            
+
     #ama>0, amc=0
     for ama in xrange(1,maxa+1):
         for aI,aJ,aK in shell_iterator(ama):
@@ -273,7 +273,7 @@ def vrr_shell_2(aexpn,xyza,bexpn,xyzb,cexpn,xyzc,dexpn,xyzd,maxa,maxc):
             #end m
         #end cIJK
     #end amc
-                
+
     # ama>0, amc>0
     for ama in xrange(1,maxa+1):
         for amc in xrange(1,maxc+1):
@@ -313,8 +313,8 @@ def vrr_shell_2(aexpn,xyza,bexpn,xyzb,cexpn,xyzc,dexpn,xyzd,maxa,maxc):
     #            for cI,cJ,cK in shell_iterator(amc):
     #                smaller_terms[aI,aJ,aK,cI,cJ,cK] = terms[aI,aJ,aK,cI,cJ,cK,0]
     #return smaller_terms
-    
-    
+
+
 def test_vrr():
     ax=ay=az=bx=by=bz=cx=cy=cz=dx=dy=dz=0.0
     aexpn=bexpn=cexpn=dexpn=1.0
@@ -383,5 +383,3 @@ def test_vrr():
 if __name__ == '__main__':
     test_vrr()
     #print list(shell_iterator(1))
-    
-    

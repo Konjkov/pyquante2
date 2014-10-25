@@ -196,7 +196,7 @@ def nuclear_attraction(alpha1,lmn1,A,alpha2,lmn2,B,C):
         for J in range(m1+m2+1):
             for K in range(n1+n2+1):
                 total += Ax[I]*Ay[J]*Az[K]*Fgamma(I+J+K,rcp2*gamma)
-                
+
     val= -2*pi/gamma*exp(-alpha1*alpha2*rab2/gamma)*total
     return val
 
@@ -218,7 +218,7 @@ def A_term(i,r,u,l1,l2,PAx,PBx,CPx,gamma):
     1.0
     >>> A_term(2,0,1,1,1,1,1,1,1)
     -0.5
-    >>> A_term(2,1,0,1,1,1,1,1,1)    
+    >>> A_term(2,1,0,1,1,1,1,1,1)
     0.5
     """
     return pow(-1,i)*binomial_prefactor(i,l1,l2,PAx,PBx)*\
