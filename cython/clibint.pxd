@@ -51,10 +51,10 @@ cdef extern from "libderiv.h":
 cdef extern from "libr12.h":
 
     ctypedef struct contr_data:
-        double AB[3];
-        double CD[3];
-        double AC[3];
-        double ABdotAC, CDdotCA;
+        double AB[3]
+        double CD[3]
+        double AC[3]
+        double ABdotAC, CDdotCA
 
     ctypedef struct Libr12_t:
         prim_data *PrimQuartet
