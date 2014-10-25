@@ -1,7 +1,7 @@
 from pyquante2.utils import dmat, geigh
 
 class SCFIterator(object):
-    def __init__(self,H,c=None,tol=1e-5,maxiters=100):
+    def __init__(self,H,c=None,tol=1e-7,maxiters=100):
         self.H = H
         self.Eold = 0
         if c is None:
@@ -33,7 +33,7 @@ class SCFIterator(object):
         return E
 
 class USCFIterator(SCFIterator):
-    def __init__(self,H,c=None,tol=1e-5,maxiters=100):
+    def __init__(self,H,c=None,tol=1e-7,maxiters=100):
         SCFIterator.__init__(self,H,c,tol,maxiters)
         self.nup,self.ndown = self.H.geo.nup(),self.H.geo.ndown()
         self.cup = self.cdown = self.c
