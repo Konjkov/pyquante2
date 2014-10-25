@@ -10,7 +10,6 @@
 """
 
 import numpy as np
-import array
 
 class cgbf(object):
     """
@@ -26,22 +25,24 @@ class cgbf(object):
         assert len(origin)==3
         assert len(powers)==3
 
-        self.origin = np.asarray(origin,'d')
+        self.origin = np.asarray(origin, 'd')
         self.powers = powers
         # TODO: temporary
         self.is_first = (powers[1] + powers[2] == 0)
         self.nfunc = (sum(powers)+1)*(sum(powers)+2)/2
 
         self.pgbfs = []
-        self.coefs = array.array('d')
-        self.pnorms = array.array('d')
-        self.pexps = array.array('d')
+        self.coefs = np.asarray(coefs, 'd')
+        self.pexps = np.asarray(exps, 'd')
 
-        for expn,coef in zip(exps,coefs):
-            self.add_pgbf(expn,coef,False)
+        for expn, coef in zip(exps, coefs):
+            self.add_pgbf(expn, coef, False)
 
         if self.pgbfs:
             self.normalize()
+
+        self.pnorms = np.array([pgbf.norm for pgbf in self.pgbfs], 'd')
+
         return
 
     def __getitem__(self,item): return list(zip(self.coefs,self.pgbfs)).__getitem__(item)
@@ -57,19 +58,13 @@ class cgbf(object):
     def cne_list(self):
         return self.coefs,self.pnorms,self.pexps
 
-    def add_pgbf(self,expn,coef,renormalize=True):
+    def add_pgbf(self, expn, coef, renormalize=True):
         from pyquante2.basis.pgbf import pgbf
 
-        self.pgbfs.append(pgbf(expn,self.origin,self.powers))
-        self.coefs.append(coef)
+        self.pgbfs.append(pgbf(expn, self.origin,self.powers))
 
         if renormalize:
             self.normalize()
-
-        p = self.pgbfs[-1]
-        self.pnorms.append(p.norm)
-        self.pexps.append(p.exponent)
-        return
 
     def normalize(self):
         from pyquante2.ints.one import S
