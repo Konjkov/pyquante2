@@ -10,7 +10,7 @@ H2O4 = read_xyz('./molfiles/H2O_4.xyz')
 N8 = read_xyz('./molfiles/N8.xyz')
 
 class PyQuanteAssertions:
-    def assertPrecisionEqual(self, a, b, prec=3e-4):
+    def assertPrecisionEqual(self, a, b, prec=4e-5):
         x = abs(2*(a-b)/(a+b))
         if x > prec:
             raise AssertionError("%.9f is equal %.9f with precision %.9f)" % (a, b, x))

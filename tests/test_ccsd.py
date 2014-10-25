@@ -1,9 +1,9 @@
 import unittest, logging
 from pyquante2.geo.molecule import read_xyz
-from pyquante2 import rhf, basisset, h2, lih, ccsd
+from pyquante2 import rhf, basisset, h2, lih, h2o, ccsd
 
 class PyQuanteAssertions:
-    def assertPrecisionEqual(self, a, b, prec=3e-4):
+    def assertPrecisionEqual(self, a, b, prec=5e-7):
         x = abs(2*(a-b)/(a+b))
         if x > prec:
             raise AssertionError("%.9f is equal %.9f with precision %.9f)" % (a, b, x))
@@ -27,6 +27,15 @@ class test_ccsd(unittest.TestCase, PyQuanteAssertions):
         nvirt = len(bfs)-lih.nocc()
         eccsd = ccsd(solver.i2, solver.orbs, solver.orbe, lih.nocc(), nvirt, H)
         self.assertPrecisionEqual(eccsd, -0.032399770519793)
+
+    def test_H2O(self):
+        bfs = basisset(h2o,'cc-pvdz')
+        solver=rhf(h2o, bfs, libint=True)
+        solver.converge()
+        H = solver.i1.T + solver.i1.V
+        nvirt = len(bfs)-h2o.nocc()
+        eccsd = ccsd(solver.i2, solver.orbs, solver.orbe, h2o.nocc(), nvirt, H)
+        self.assertPrecisionEqual(eccsd, -0.215438874234570)
 
 
 def runsuite(verbose=True):
