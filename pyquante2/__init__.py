@@ -7,6 +7,7 @@ from pyquante2.graphics.vtkplot import vtk_orbs
 from pyquante2.grid.grid import grid
 from pyquante2.ints.one import S,T,V
 from pyquante2.pt.mp2 import mp2
+from pyquante2.cc.ccsd import ccsd
 from pyquante2.scf.hamiltonians import rhf,uhf
 
 try:
@@ -15,4 +16,3 @@ try:
     from pyquante2.graphics.contourplot import contourplot
 except:
     pass
-    
