@@ -37,4 +37,3 @@ def plot_orbs():
 if __name__ == '__main__':
     #plot_h2_lineplot()
     plot_h2_vtk()
-

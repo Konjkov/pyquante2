@@ -28,5 +28,3 @@ class test_zmatrix(unittest.TestCase):
         self.assertTrue(cartesians_equal(z2xyz([['H'],['O',1,1],['O',2,1,1,90.],['H',3,1,2,90.,1,-90.]]),
                                          [['H',0,0,0],['O',1,0,0],['O',1,1,0],['H',1,1,1]]))
         return
-
-
