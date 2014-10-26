@@ -110,7 +110,12 @@ def ccsd(ints, orbs, orbe, ndocc, nvirt, H, verbose=False):
         Wabef -= Pab
         Wabef += Pab.swapaxes(0, 1)
         tmp_tau = build_tau(t1, t2)
-        Wabef += 0.25 * np.einsum('mnab,mnef->abef', tmp_tau, MO[o, o, v, v])
+        # np.einsum('mnab,mnef->abef', tmp_tau, MO[o, o, v, v]) - slowest step
+        if True:
+            t = np.einsum('abij,cdij->abcd', np.transpose(tmp_tau, axes=(2,3,0,1)), MO[v, v, o, o])
+        else:
+            t = np.einsum('mnab,mnef->abef', tmp_tau, MO[o, o, v, v])
+        Wabef += 0.25 * t
         return Wabef
 
     #Build Eqn 8:
