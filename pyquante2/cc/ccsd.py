@@ -54,7 +54,7 @@ def ccsd(ints, orbs, orbe, ndocc, nvirt, H, verbose=False):
     #Bulid Eqn 9: tilde{\Tau})
     def build_tilde_tau(t1, t2):
         ttau = t2.copy()
-        tmp = 0.5 * np.einsum('ia, jb->ijab', t1, t1)
+        tmp = 0.5 * np.einsum('ia,jb->ijab', t1, t1)
         ttau += tmp
         ttau -= tmp.swapaxes(2, 3)
         return ttau
@@ -110,12 +110,7 @@ def ccsd(ints, orbs, orbe, ndocc, nvirt, H, verbose=False):
         Wabef -= Pab
         Wabef += Pab.swapaxes(0, 1)
         tmp_tau = build_tau(t1, t2)
-        # np.einsum('mnab,mnef->abef', tmp_tau, MO[o, o, v, v]) - slowest step
-        if True:
-            t = np.einsum('abij,cdij->abcd', np.transpose(tmp_tau, axes=(2,3,0,1)), MO[v, v, o, o])
-        else:
-            t = np.einsum('mnab,mnef->abef', tmp_tau, MO[o, o, v, v])
-        Wabef += 0.25 * t
+        Wabef += 0.25 * np.einsum('mnab,efmn->abef', tmp_tau, MO[v, v, o, o])
         return Wabef
 
     #Build Eqn 8:
