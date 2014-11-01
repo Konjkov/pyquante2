@@ -37,7 +37,7 @@ class twoe_integrals_compressed(object):
 
         for i,j,k,l in iiterator(nbf):
             self._2e_ints[iindex(i,j,k,l)] = ERI(bfs[i],bfs[j],bfs[k],bfs[l])
-        return
+
     def __getitem__(self,pos): return self._2e_ints[iindex(*pos)]
     def __repr__(self): return repr(self._2e_ints)
 
@@ -98,7 +98,7 @@ class twoe_integrals(object):
             ints[i,j,k,l] = ints[j,i,k,l] = ints[i,j,l,k] = ints[j,i,l,k] = \
                             ints[k,l,i,j] = ints[l,k,i,j] = ints[k,l,j,i] = \
                             ints[l,k,j,i] = ERI(bfs[i],bfs[j],bfs[k],bfs[l])
-        return
+
     def __getitem__(self,*args): return self._2e_ints.__getitem__(*args)
     def __repr__(self): return repr(self._2e_ints.ravel())
 
@@ -128,6 +128,7 @@ class libint_twoe_integrals(twoe_integrals):
     >>> twoe_integrals(bfs)
     array([ 0.77460594])
     """
+
     def __init__(self, bfs):
         nbf = self.nbf = len(bfs)
         self._2e_ints = np.empty((nbf,nbf,nbf,nbf),'d')
