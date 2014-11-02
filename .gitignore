@@ -4,6 +4,7 @@ profile.out
 *~
 *.png
 *.vtk
+*.pyc
 prof
 docs/_build
 .svn/*
