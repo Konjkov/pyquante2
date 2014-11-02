@@ -1,4 +1,5 @@
 import unittest, logging
+from pyquante2.ints.integrals import libint_twoe_integrals
 from pyquante2.geo.molecule import read_xyz
 from pyquante2 import rhf, basisset, h2, lih, h2o, ch4, ccsd
 
@@ -12,7 +13,7 @@ class PyQuanteAssertions:
 class test_ccsd(unittest.TestCase, PyQuanteAssertions):
     def test_H2(self):
         bfs = basisset(h2,'cc-pvdz')
-        solver=rhf(h2, bfs, libint=True)
+        solver=rhf(h2, bfs, twoe_factory=libint_twoe_integrals)
         solver.converge()
         H = solver.i1.T + solver.i1.V
         nvirt = len(bfs)-h2.nocc()
@@ -21,7 +22,7 @@ class test_ccsd(unittest.TestCase, PyQuanteAssertions):
 
     def test_LiH(self):
         bfs = basisset(lih,'cc-pvdz')
-        solver=rhf(lih, bfs, libint=True)
+        solver=rhf(lih, bfs, twoe_factory=libint_twoe_integrals)
         solver.converge()
         H = solver.i1.T + solver.i1.V
         nvirt = len(bfs)-lih.nocc()
@@ -30,7 +31,7 @@ class test_ccsd(unittest.TestCase, PyQuanteAssertions):
 
     def test_H2O(self):
         bfs = basisset(h2o,'cc-pvdz')
-        solver=rhf(h2o, bfs, libint=True)
+        solver=rhf(h2o, bfs, twoe_factory=libint_twoe_integrals)
         solver.converge()
         H = solver.i1.T + solver.i1.V
         nvirt = len(bfs)-h2o.nocc()
@@ -39,7 +40,7 @@ class test_ccsd(unittest.TestCase, PyQuanteAssertions):
 
     def test_CH4(self):
         bfs = basisset(ch4,'cc-pvdz')
-        solver=rhf(ch4, bfs, libint=True)
+        solver=rhf(ch4, bfs, twoe_factory=libint_twoe_integrals)
         solver.converge()
         H = solver.i1.T + solver.i1.V
         nvirt = len(bfs)-ch4.nocc()
@@ -66,14 +67,6 @@ def debugsuite():
     cProfile.run('runsuite()','prof')
     prof = pstats.Stats('prof')
     prof.strip_dirs().sort_stats('time').print_stats(50)
-
-
-def linedebugsuite():
-    import line_profiler
-    protfiler = line_profiler.LineProfiler()
-    protfiler.enable_by_count()
-    protfiler.add_function(test_ccsd)
-    protfiler.print_stats()
 
 
 if __name__ == '__main__':
