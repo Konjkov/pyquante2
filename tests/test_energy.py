@@ -1,5 +1,6 @@
 import unittest, logging
 from pyquante2 import molecule, rhf, uhf, basisset
+from pyquante2.ints.integrals import libint_twoe_integrals
 from pyquante2.geo.molecule import read_xyz
 from pyquante2.scf.iterators import AveragingIterator
 
@@ -44,49 +45,49 @@ class test_rhf_energy(unittest.TestCase, PyQuanteAssertions):
     def test_CH4(self):
         """CH4 symmetry Td"""
         bfs = basisset(CH4,'sto-3g')
-        solver = rhf(CH4,bfs,libint=True)
+        solver = rhf(CH4, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -39.726670467839)
 
     def test_C2H2Cl2(self):
         """C2H2Cl2 symmetry C2H"""
         bfs = basisset(C2H2Cl2,'sto-3g')
-        solver = rhf(C2H2Cl2,bfs,libint=True)
+        solver = rhf(C2H2Cl2, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -967.533150327823)
 
     def test_H2O_4(self):
         """H2O tethramer symmetry S4"""
         bfs = basisset(H2O4,'sto-3g')
-        solver = rhf(H2O4,bfs,libint=True)
+        solver = rhf(H2O4, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -299.909789863537)
 
     def test_BrF5(self):
         """BrF5 symmetry C4v"""
         bfs = basisset(BrF5,'sto-3g')
-        solver = rhf(BrF5,bfs,libint=True)
+        solver = rhf(BrF5, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -3035.015731331871)
 
     def test_HBr(self):
         """HBr"""
         bfs = basisset(HBr,'sto-3g')
-        solver = rhf(HBr,bfs,libint=True)
+        solver = rhf(HBr, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -2545.887434128302)
 
     def test_C8H8(self):
         """C8H8"""
         bfs = basisset(C8H8,'sto-6g')
-        solver = rhf(C8H8,bfs,libint=True)
+        solver = rhf(C8H8, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -306.765545547300)
 
     def test_N8(self):
         """N8"""
         bfs = basisset(N8,'cc-pvdz')
-        solver = rhf(N8,bfs,libint=True)
+        solver = rhf(N8, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -434.992755329296)
 
@@ -98,7 +99,7 @@ class test_unstable(unittest.TestCase, PyQuanteAssertions):
     def test_B12(self):
         """B12 symmetry Ih"""
         bfs = basisset(B12,'sto-3g')
-        solver = rhf(B12,bfs,libint=True)
+        solver = rhf(B12, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -290.579419642829)
 
@@ -108,7 +109,7 @@ class test_unstable(unittest.TestCase, PyQuanteAssertions):
         Reference: Whitaker, A.; Jeffery, J. W. Acta Cryst. 1967, 23, 977. DOI: 10.1107/S0365110X67004153
         """
         bfs = basisset(CrCO6,'sto-3g')
-        solver = rhf(CrCO6,bfs,libint=True)
+        solver = rhf(CrCO6, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge(iterator=AveragingIterator)
         self.assertPrecisionEqual(solver.energy, -1699.539642257497, prec=1e-4)
 
@@ -116,7 +117,7 @@ class test_unstable(unittest.TestCase, PyQuanteAssertions):
         # FAIL
         """C24 symmetry Th"""
         bfs = basisset(C24,'sto-3g')
-        solver = rhf(C24,bfs,libint=True)
+        solver = rhf(C24, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -890.071915453874, prec=1e-3)
 
@@ -126,7 +127,7 @@ class test_uhf_energy(unittest.TestCase, PyQuanteAssertions):
     def test_CF3(self):
         """CF3 radical"""
         bfs = basisset(CF3,'sto-3g')
-        solver = uhf(CF3,bfs,libint=True)
+        solver = uhf(CF3, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
         self.assertPrecisionEqual(solver.energy, -331.480688906400)
 
