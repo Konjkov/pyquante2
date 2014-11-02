@@ -62,9 +62,6 @@ class cgbf(object):
         """
         return sum(c*p.mesh(xyzs) for c,p in self)
 
-    def cne_list(self):
-        return self.coefs,self.pnorms,self.pexps
-
     def add_pgbf(self, expn, coef, renormalize=True):
         from pyquante2.basis.pgbf import pgbf
 
