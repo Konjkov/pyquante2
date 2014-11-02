@@ -1,6 +1,6 @@
 import unittest, logging
 from pyquante2 import molecule, rhf, uhf, h2, h2o, lih, li, oh, ch4, basisset
-from pyquante2.ints.integrals import libint_twoe_integrals
+from pyquante2.ints.integrals import libint_twoe_integrals, twoe_integrals_compressed
 from pyquante2.geo.molecule import read_xyz
 from pyquante2.scf.iterators import AveragingIterator
 
@@ -10,24 +10,28 @@ class test_scf(unittest.TestCase):
         bfs = basisset(h2,'sto-3g')
         solver = rhf(h2,bfs)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -1.117099582955609, 6)
 
     def test_h2_631(self):
         bfs = basisset(h2,'6-31gss')
         solver = rhf(h2,bfs)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -1.1313335790123258, 7)
 
     def test_lih(self):
         bfs = basisset(lih,'sto-3g')
         solver = rhf(lih,bfs)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -7.860746149768, 6)
 
     def test_lih_averaging(self):
         bfs = basisset(lih,'sto-3g')
         solver = rhf(lih,bfs)
         ens = solver.converge(AveragingIterator)
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -7.860746149768, 4)
 
     def test_h4(self):
@@ -41,6 +45,7 @@ class test_scf(unittest.TestCase):
         bfs = basisset(h4,'sto-3g')
         solver = rhf(h4,bfs)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -2.234185653441159, 6)
         # This is not quite equal to 2x the h2 energy, but very close
 
@@ -48,24 +53,28 @@ class test_scf(unittest.TestCase):
         bfs = basisset(h2o,'sto-3g')
         solver = rhf(h2o,bfs)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -74.959856675848712, 5)
 
     def test_h2o_averaging(self):
         bfs = basisset(h2o,'sto-3g')
         solver = rhf(h2o,bfs)
         ens = solver.converge(AveragingIterator)
-        self.assertAlmostEqual(solver.energy, -74.959847457272502, 5)
+        self.assertTrue(solver.converged)
+        self.assertAlmostEqual(solver.energy, -74.959856675848712, 5)
 
     def test_oh(self):
         bfs = basisset(oh,'sto-3g')
         solver = uhf(oh,bfs)
         ens = solver.converge()
-        self.assertAlmostEqual(solver.energy, -74.14666861386641, 6)
+        self.assertTrue(solver.converged)
+        self.assertAlmostEqual(solver.energy, -74.175777105436, 6)
 
     def test_li(self):
         bfs = basisset(li,'sto-3g')
         solver = uhf(li,bfs)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -7.315525981280, 7)
 
 
@@ -76,6 +85,7 @@ class test_libint_rhf(unittest.TestCase):
         bfs = basisset(ch4,'sto-3g')
         solver = rhf(ch4, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -39.726862723517, 6)
 
     def test_C2H2Cl2(self):
@@ -84,6 +94,7 @@ class test_libint_rhf(unittest.TestCase):
         bfs = basisset(C2H2Cl2,'sto-3g')
         solver = rhf(C2H2Cl2, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -967.533150337277, 4)
 
     def test_H2O_4(self):
@@ -92,6 +103,7 @@ class test_libint_rhf(unittest.TestCase):
         bfs = basisset(H2O4,'sto-3g')
         solver = rhf(H2O4, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -299.909789863537, 5)
 
     def test_BrF5(self):
@@ -100,6 +112,7 @@ class test_libint_rhf(unittest.TestCase):
         bfs = basisset(BrF5,'sto-3g')
         solver = rhf(BrF5, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -3035.015731331871, 4)
 
     def test_HBr(self):
@@ -108,6 +121,7 @@ class test_libint_rhf(unittest.TestCase):
         bfs = basisset(HBr,'sto-3g')
         solver = rhf(HBr, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -2545.887434128302, 4)
 
     def test_C8H8(self):
@@ -116,6 +130,7 @@ class test_libint_rhf(unittest.TestCase):
         bfs = basisset(C8H8,'sto-6g')
         solver = rhf(C8H8, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -306.765545547300, 5)
 
     def test_N8(self):
@@ -124,6 +139,7 @@ class test_libint_rhf(unittest.TestCase):
         bfs = basisset(N8,'cc-pvdz')
         solver = rhf(N8, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -434.992755329296, 5)
 
 
@@ -137,6 +153,7 @@ class test_unstable(unittest.TestCase):
         bfs = basisset(B12,'sto-3g')
         solver = rhf(B12, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -290.579419642829, 0)
 
     def test_CrCO6(self):
@@ -148,6 +165,7 @@ class test_unstable(unittest.TestCase):
         bfs = basisset(CrCO6,'sto-3g')
         solver = rhf(CrCO6, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge(iterator=AveragingIterator)
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -1699.539642257497, 0)
 
     def test_C24(self):
@@ -157,6 +175,7 @@ class test_unstable(unittest.TestCase):
         bfs = basisset(C24,'sto-3g')
         solver = rhf(C24, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -890.071915453874, 0)
 
 
@@ -168,6 +187,7 @@ class test_libint_uhf(unittest.TestCase):
         bfs = basisset(CF3,'sto-3g')
         solver = uhf(CF3, bfs, twoe_factory=libint_twoe_integrals)
         ens = solver.converge()
+        self.assertTrue(solver.converged)
         self.assertAlmostEqual(solver.energy, -331.480688906400, 7)
 
 
