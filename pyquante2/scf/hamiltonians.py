@@ -1,20 +1,17 @@
 from pyquante2.grid.grid import grid
-from pyquante2.ints.integrals import onee_integrals,twoe_integrals,libint_twoe_integrals
+from pyquante2.ints.integrals import onee_integrals, twoe_integrals
 from pyquante2.utils import trace2, geigh
-from pyquante2.scf.iterators import SCFIterator,USCFIterator,AveragingIterator
+from pyquante2.scf.iterators import SCFIterator, USCFIterator, AveragingIterator
 import numpy as np
 
 class hamiltonian(object):
     name = 'abstract'
-    def __init__(self, geo, bfs, libint=False):
+    def __init__(self, geo, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
         self.geo = geo
         self.bfs = bfs
         self.Enuc = self.geo.nuclear_repulsion()
-        self.i1 = onee_integrals(bfs,geo)
-        if libint:
-            self.i2 = libint_twoe_integrals(bfs)
-        else:
-            self.i2 = twoe_integrals(bfs)
+        self.i1 = onee_factory(bfs,geo)
+        self.i2 = twoe_factory(bfs)
         self.energies = []
         self.energy = 0
         self.converged = False
