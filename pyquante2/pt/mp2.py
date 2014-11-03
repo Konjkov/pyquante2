@@ -2,7 +2,8 @@ import numpy as np
 from itertools import product
 from functools import reduce
 
-def mp2(ints, orbs, orbe, nocc, nvirt, verbose=False):
+def mp2(hamiltonian, orbs, orbe, nocc, nvirt, verbose=False):
+    ints = hamiltonian.i2
     moints = ints.transform_mp2(orbs, nocc)
     Emp2 = 0
     for a,b in product(range(nocc), repeat=2):
