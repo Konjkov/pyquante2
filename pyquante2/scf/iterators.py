@@ -1,80 +1,70 @@
-from pyquante2.utils import dmat, geigh
+from guess import core_hamiltonian_rhf, core_hamiltonian_uhf
+
 
 class SCFIterator(object):
-    def __init__(self,H,c=None,tol=1e-7,maxiters=100):
+    def __init__(self, H, guess=core_hamiltonian_rhf):
         self.H = H
-        self.Eold = 0
-        if c is None:
-            h = H.i1.T + H.i1.V
-            orbe,self.c = geigh(h, H.i1.S)
-        else:
-            self.c = c
-        self.maxiters = maxiters
-        self.tol = tol
-
+        self.D = guess(H)
         self.converged = False
-        self.iterations = 0
-        return
 
-    def __iter__(self): return self
+    def converge(self, tol=1e-7, maxiters=100):
+        E = 0
+        D = self.D
+        for iteration in range(maxiters):
+            """Update orbital energies and eigenvectors"""
+            F = self.H.fock(D)
+            orbe, orbs = self.H.eigenv(F)
+            D = self.H.density(orbs)
+            E, Eold = self.H.energy(D, F), E
+            if abs(E-Eold) < tol:
+                self.D = D
+                self.orbe, self.orbs = orbe, orbs
+                self.energy = E
+                self.converged = True
+                break
 
-    def next(self): return self.__next__()
-    def __next__(self):
-        self.iterations += 1
-        if self.iterations > self.maxiters:
-            raise StopIteration
-        D = dmat(self.c,self.H.geo.nocc())
-        self.c = self.H.update(D)
-        E = self.H.energy
-        if abs(E-self.Eold) < self.tol:
-            self.converged = True
-            raise StopIteration
-        self.Eold = E
-        return E
 
-class USCFIterator(SCFIterator):
-    def __init__(self,H,c=None,tol=1e-7,maxiters=100):
-        SCFIterator.__init__(self,H,c,tol,maxiters)
-        self.nup,self.ndown = self.H.geo.nup(),self.H.geo.ndown()
-        self.cup = self.cdown = self.c
-        return
+class USCFIterator(object):
+    def __init__(self, H, guess=core_hamiltonian_uhf):
+        self.H = H
+        self.Da, self.Db = guess(H)
+        self.converged = False
 
-    def __next__(self):
-        self.iterations += 1
-        if self.iterations > self.maxiters:
-            raise StopIteration
-        Dup = dmat(self.cup,self.nup)
-        Ddown = dmat(self.cdown,self.ndown)
-        self.cup,self.cdown = self.H.update(Dup,Ddown)
-        E = self.H.energy
-        if abs(E-self.Eold) < self.tol:
-            self.converged = True
-            raise StopIteration
-        self.Eold = E
-        return E
+    def converge(self, tol=1e-7, maxiters=100):
+        E = 0
+        Da = self.Da
+        Db = self.Db
+        for iteration in range(maxiters):
+            Fa, Fb = self.H.fock(Da, Db)
+            (orbea, orbsa), (orbeb, orbsb) = self.H.eigenv(Fa, Fb)
+            Da, Db = self.H.density(orbsa, orbsb)
+            E, Eold = self.H.energy(Da, Db, Fa, Fb), E
+            if abs(E-Eold) < tol:
+                self.Da, self.Db = Da, Db
+                self.orbea, self.orbsa = (orbea, orbsa)
+                self.orbeb, self.orbsb = (orbeb, orbsb)
+                self.energy = E
+                self.converged = True
+                break
+
 
 class AveragingIterator(SCFIterator):
-    def __init__(self,H,c=None,fraction=0.5,tol=1e-5,maxiters=100):
-        SCFIterator.__init__(self,H,c,tol,maxiters)
-        self.fraction = fraction
-        self.Dold = None
-        return
+    def converge(self, fraction=0.5, tol=1e-7, maxiters=100):
+        E = 0
+        D = Dold = self.D
+        for iteration in range(maxiters):
+            F = self.H.fock(D)
+            orbe, orbs = self.H.eigenv(F)
+            D = self.H.density(orbs)
+            D, Dold = (1-fraction)*Dold + fraction*D, D
+            E, Eold = self.H.energy(D, F), E
+            if abs(E-Eold) < tol:
+                self.D = D
+                self.orbe, self.orbs = orbe, orbs
+                self.energy = E
+                self.converged = True
+                break
 
-    def __next__(self):
-        self.iterations += 1
-        if self.iterations > self.maxiters:
-            raise StopIteration
-        D = dmat(self.c,self.H.geo.nocc())
-        if self.Dold is not None:
-            D = (1-self.fraction)*self.Dold + self.fraction*D
-        self.c = self.H.update(D)
-        E = self.H.energy
-        if abs(E-self.Eold) < self.tol:
-            self.converged = True
-            raise StopIteration
-        self.Eold = E
-        self.Dold = D
-        return E
 
 if __name__ == '__main__':
     import doctest; doctest.testmod()
