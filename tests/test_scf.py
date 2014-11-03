@@ -1,8 +1,8 @@
 import unittest, logging
-from pyquante2 import molecule, rhf, uhf, h2, h2o, lih, li, oh, ch4, basisset
+from pyquante2 import molecule, rhf, uhf, rohf, h2, h2o, lih, li, oh, ch4, basisset
 from pyquante2.ints.integrals import libint_twoe_integrals, twoe_integrals_compressed
 from pyquante2.geo.molecule import read_xyz
-from pyquante2.scf.iterators import SCFIterator, AveragingIterator, USCFIterator
+from pyquante2.scf.iterators import SCFIterator, AveragingIterator, USCFIterator, ROSCFIterator
 
 
 class test_scf(unittest.TestCase):
@@ -36,7 +36,7 @@ class test_scf(unittest.TestCase):
         iterator = AveragingIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -7.860746149768, 4)
+        self.assertAlmostEqual(iterator.energy, -7.860746149768, 6)
 
     def test_h4(self):
         h4 = molecule([
@@ -211,6 +211,26 @@ class test_libint_uhf(unittest.TestCase):
         self.assertAlmostEqual(iterator.energy, -331.480688906400, 5)
 
 
+class test_libint_rohf(unittest.TestCase):
+    def test_CF3(self):
+        """CF3 radical"""
+        CF3 = read_xyz('./molfiles/CF3.xyz')
+        bfs = basisset(CF3,'sto-3g')
+        hamiltonian = rohf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = ROSCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
+        self.assertAlmostEqual(iterator.energy, -331.479341223402, 3)
+
+    def test_oh(self):
+        bfs = basisset(oh,'sto-3g')
+        hamiltonian = rohf(bfs)
+        iterator = ROSCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
+        self.assertAlmostEqual(iterator.energy, -74.359151530162, 4)
+
+
 def runsuite(verbose=True):
     # To use psyco, uncomment this line:
     #import psyco; psyco.full()
@@ -221,7 +241,8 @@ def runsuite(verbose=True):
     suite2 = unittest.TestLoader().loadTestsFromTestCase(test_libint_rhf)
     suite3 = unittest.TestLoader().loadTestsFromTestCase(test_unstable)
     suite4 = unittest.TestLoader().loadTestsFromTestCase(test_libint_uhf)
-    alltests = unittest.TestSuite([suite1])
+    suite5 = unittest.TestLoader().loadTestsFromTestCase(test_libint_rohf)
+    alltests = unittest.TestSuite([suite5])
     unittest.TextTestRunner(verbosity=verbosity).run(alltests)
     # Running without verbosity is equivalent to replacing the above
     # two lines with the following:
