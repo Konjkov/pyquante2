@@ -21,15 +21,20 @@ class rhf(hamiltonian):
     name = 'RHF'
 
     def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
-        hamiltonian.__init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals)
+        hamiltonian.__init__(self, bfs, onee_factory=onee_factory, twoe_factory=twoe_factory)
         self.nocc = bfs.atoms.nocc()
 
-    def fock(self, D):
-        """ Fock matrix
+    def fock_energy(self, D):
+        """ Fock matrix & energy
         """
         h = self.h
         G = self.i2.get_2jk(D)
-        return h + G
+        F = h + G
+        # Energy
+        Eone = 2 * trace2(h, D)
+        Etwo = trace2(D, G)
+        E = self.Enuc + Eone + Etwo
+        return F, E
 
     def eigenv(self, F):
         """ Eigenvalues and Eigenvectors
@@ -41,15 +46,6 @@ class rhf(hamiltonian):
         """ Electron density
         """
         return dmat(orbs, self.nocc)
-
-    def energy(self, D, F):
-        """ Total energy
-        """
-        h = self.h
-        G = F - h # TODO: not optimal
-        Eone = 2 * trace2(h, D)
-        Etwo = trace2(D, G)
-        return self.Enuc + Eone + Etwo
 
 
 class rdft(rhf):
@@ -80,11 +76,12 @@ class uhf(hamiltonian):
     name = 'UHF'
 
     def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
-        hamiltonian.__init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals)
+        hamiltonian.__init__(self, bfs, onee_factory=onee_factory, twoe_factory=twoe_factory)
         self.nup = bfs.atoms.nup()
         self.ndown = bfs.atoms.ndown()
 
-    def fock(self, Da, Db):
+    def fock_energy(self, Da, Db):
+        # Fock
         h = self.h
         J = self.i2.get_j(Da + Db)
         Ka, Kb = self.i2.get_k(Da), self.i2.get_k(Db)
@@ -92,7 +89,11 @@ class uhf(hamiltonian):
         Gb = J - Kb
         Fa = h + Ga
         Fb = h + Gb
-        return Fa, Fb
+        # Energy
+        Eone = trace2(Da + Db, h)
+        Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
+        E = self.Enuc + Eone + Etwo
+        return Fa, Fb, E
 
     def eigenv(self, Fa, Fb):
         orbea, orbsa = geigh(Fa, self.i1.S)
@@ -104,37 +105,29 @@ class uhf(hamiltonian):
         Db = dmat(orbsb, self.ndown)
         return Da, Db
 
-    def energy(self, Da, Db, Fa, Fb):
-        h = self.h
-        Ga = Fa - h # TODO: not optimal
-        Gb = Fb - h # TODO: not optimal
-        Eone = trace2(Da + Db, h)
-        Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
-        return self.Enuc + Eone + Etwo
-
 
 class rohf(hamiltonian):
     name = 'ROHF'
 
     def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
-        hamiltonian.__init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals)
+        hamiltonian.__init__(self, bfs, onee_factory=onee_factory, twoe_factory=twoe_factory)
         self.bfs = bfs
         self.nup = bfs.atoms.nup()
         self.ndown = bfs.atoms.ndown()
         # Guest and Sounders
-        self.Acc = 1/2
-        self.Aoo = 1/2
-        self.Avv = 1/2
-        self.Bcc = 1/2
-        self.Boo = 1/2
-        self.Bvv = 1/2
+        self.Acc = self.Bcc = self.Aoo = self.Boo = self.Avv = self.Bvv = 0.5
         # Roothaan single matrix  -1/2  3/2  1/2  1/2  3/2 -1/2
+        # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = -0.5, 1.5, 0.5, 0.5, 1.5, -0.5
         # Davidson                 1/2  1/2   1    0    1    0
+        # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = 0.5, 0.5, 1.0, 0.0, 1.0, 0.0
         # Binkley, Pople, Dobosh   1/2  1/2   1    0    0    1
+        # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = 0.5, 0.5, 1.0, 0.0, 0.0, 1.0
         # McWeeny and Diercksen    1/3  2/3  1/3  1/3  2/3  1/3
+        # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = 1/3.0, 2/3.0, 1/3.0, 1/3.0, 2/3.0, 1/3.0
         # Faegri and Manne         1/2  1/2   1    0   1/2  1/2
+        # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = 0.5, 0.5, 1.0, 0.0, 0.5, 0.5
 
-    def fock(self, Da, Db):
+    def fock_energy(self, Da, Db):
         h = self.h
         J = self.i2.get_j(Da + Db)
         Ka, Kb = self.i2.get_k(Da), self.i2.get_k(Db)
@@ -142,12 +135,17 @@ class rohf(hamiltonian):
         Gb = J - Kb
         Fa = h + Ga
         Fb = h + Gb
+        # Energy
+        Eone = trace2(Da + Db, h)
+        Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
+        E = self.Enuc + Eone + Etwo
+        # Effective Fock
         Fc = (Fa + Fb) / 2.0
         F2 = self.Acc * Fa + self.Bcc * Fb
         F1 = self.Aoo * Fa + self.Boo * Fb
         F0 = self.Avv * Fa + self.Bvv * Fb
-        # Build block matrix
         Feff = np.zeros((len(self.bfs), len(self.bfs)),'d')
+        # self.nup > self.ndown
         Feff[self.nup:, self.nup:] = F0[self.nup:, self.nup:]
         Feff[self.ndown:self.nup, self.ndown:self.nup] = F1[self.ndown:self.nup, self.ndown:self.nup]
         Feff[:self.ndown, :self.ndown] = F2[:self.ndown, :self.ndown]
@@ -157,7 +155,7 @@ class rohf(hamiltonian):
         Feff[self.ndown:self.nup, :self.ndown] = Fb[self.ndown:self.nup, :self.ndown]
         Feff[:self.ndown, self.nup:] = Fc[:self.ndown, self.nup:]
         Feff[self.nup:, :self.ndown] = Fc[self.nup:, :self.ndown]
-        return Feff
+        return Feff, E
 
     def eigenv(self, F):
         """ Eigenvalues and Eigenvectors
@@ -169,15 +167,6 @@ class rohf(hamiltonian):
         Da = dmat(orbs, self.nup)
         Db = dmat(orbs, self.ndown)
         return Da, Db
-
-    def energy(self, Da, Db, F):
-        """ Total energy
-        """
-        h = self.h
-        G = F - h # TODO: not optimal
-        Eone = 2 * trace2(h, Db)
-        Etwo = trace2(Db, G)
-        return self.Enuc + Eone + Etwo
 
 
 class cuhf(uhf):
