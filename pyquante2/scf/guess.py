@@ -13,5 +13,11 @@ def core_hamiltonian_uhf(H):
     return H.density(orbsa, orbsb)
 
 
+def core_hamiltonian_rohf(H):
+    name = 'Core hamiltonian guess'
+    orbe, orbs = H.eigenv(H.h)
+    return H.density(orbs)
+
+
 def atomic_densities(H):
     name = 'Superposition of atomic densities guess'
