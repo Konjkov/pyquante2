@@ -191,7 +191,7 @@ class onee_integrals(object):
     >>> i1.V
     array([[-1.22661373]])
     """
-    def __init__(self,bfs,geo):
+    def __init__(self, bfs):
         nbf = self.nbf = len(bfs)
         self.S = np.empty((nbf,nbf),'d')
         self.T = np.empty((nbf,nbf),'d')
@@ -200,7 +200,7 @@ class onee_integrals(object):
             ibf,jbf = bfs[i],bfs[j]
             self.S[i,j] = self.S[j,i] = S(ibf,jbf)
             self.T[i,j] = self.T[j,i] = T(ibf,jbf)
-            self.V[i,j] = self.V[j,i] = sum(at.Z*V(ibf,jbf,at.r) for at in geo)
+            self.V[i,j] = self.V[j,i] = sum(at.Z*V(ibf,jbf,at.r) for at in bfs.atoms)
         return
 
 
