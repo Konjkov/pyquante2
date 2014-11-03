@@ -7,7 +7,8 @@ import numpy as np
 from itertools import product
 from functools import reduce
 
-def ccsd(ints, orbs, orbe, ndocc, nvirt, H, verbose=False):
+def ccsd(hamiltonian, orbs, orbe, ndocc, nvirt, verbose=False):
+    H = hamiltonian.h
     nmo = ndocc + nvirt
     C = orbs
     eps = orbe
@@ -16,7 +17,7 @@ def ccsd(ints, orbs, orbe, ndocc, nvirt, H, verbose=False):
     t=time.time()
     print 'Starting AO -> spin-orbital MO transformation...'
     nso = nmo * 2
-    MO = np.einsum('rJ, pqrs->pqJs', C, ints._2e_ints)
+    MO = np.einsum('rJ, pqrs->pqJs', C, hamiltonian.i2._2e_ints)
     MO = np.einsum('pI, pqJs->IqJs', C, MO)
     MO = np.einsum('sB, IqJs->IqJB', C, MO)
     MO = np.einsum('qA, IqJB->IAJB', C, MO)
@@ -214,5 +215,4 @@ def ccsd(ints, orbs, orbe, ndocc, nvirt, H, verbose=False):
         CCSDcorr_E_old = CCSDcorr_E
     return CCSDcorr_E
 
-if __name__ == '__main__':
-    pass
+if __name__ == '__main__': test_ccsd()
