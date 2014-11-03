@@ -2,50 +2,49 @@ import unittest, logging
 from pyquante2.ints.integrals import libint_twoe_integrals
 from pyquante2.geo.molecule import read_xyz
 from pyquante2 import rhf, basisset, h2, lih, h2o, ch4, ccsd
-
-class PyQuanteAssertions:
-    def assertPrecisionEqual(self, a, b, prec=6e-7):
-        x = abs(2*(a-b)/(a+b))
-        if x > prec:
-            raise AssertionError("%.9f is equal %.9f with precision %.9f)" % (a, b, x))
+from pyquante2.scf.iterators import SCFIterator
 
 
-class test_ccsd(unittest.TestCase, PyQuanteAssertions):
+class test_ccsd(unittest.TestCase):
     def test_H2(self):
         bfs = basisset(h2,'cc-pvdz')
-        solver=rhf(h2, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
-        H = solver.i1.T + solver.i1.V
+        hamiltonian = rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-h2.nocc()
-        eccsd = ccsd(solver.i2, solver.orbs, solver.orbe, h2.nocc(), nvirt, H)
-        self.assertPrecisionEqual(eccsd, -0.034544318453406)
+        eccsd = ccsd(hamiltonian, iterator.orbs, iterator.orbe, h2.nocc(), nvirt)
+        self.assertAlmostEqual(eccsd, -0.034544318453406, 8)
 
     def test_LiH(self):
         bfs = basisset(lih,'cc-pvdz')
-        solver=rhf(lih, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
-        H = solver.i1.T + solver.i1.V
+        hamiltonian = rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-lih.nocc()
-        eccsd = ccsd(solver.i2, solver.orbs, solver.orbe, lih.nocc(), nvirt, H)
-        self.assertPrecisionEqual(eccsd, -0.032399770519793)
+        eccsd = ccsd(hamiltonian, iterator.orbs, iterator.orbe, lih.nocc(), nvirt)
+        self.assertAlmostEqual(eccsd, -0.032399770519793, 7)
 
     def test_H2O(self):
         bfs = basisset(h2o,'cc-pvdz')
-        solver=rhf(h2o, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
-        H = solver.i1.T + solver.i1.V
+        hamiltonian = rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-h2o.nocc()
-        eccsd = ccsd(solver.i2, solver.orbs, solver.orbe, h2o.nocc(), nvirt, H)
-        self.assertPrecisionEqual(eccsd, -0.215438874234570)
+        eccsd = ccsd(hamiltonian, iterator.orbs, iterator.orbe, h2o.nocc(), nvirt)
+        self.assertAlmostEqual(eccsd, -0.215438874234570, 7)
 
     def test_CH4(self):
         bfs = basisset(ch4,'cc-pvdz')
-        solver=rhf(ch4, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
-        H = solver.i1.T + solver.i1.V
+        hamiltonian = rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-ch4.nocc()
-        eccsd = ccsd(solver.i2, solver.orbs, solver.orbe, ch4.nocc(), nvirt, H)
-        self.assertPrecisionEqual(eccsd, -0.189626419684193)
+        eccsd = ccsd(hamiltonian, iterator.orbs, iterator.orbe, ch4.nocc(), nvirt)
+        self.assertAlmostEqual(eccsd, -0.189626419684193, 7)
 
 
 def runsuite(verbose=True):

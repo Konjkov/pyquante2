@@ -2,69 +2,72 @@ import unittest, logging
 from pyquante2.ints.integrals import libint_twoe_integrals
 from pyquante2.geo.molecule import read_xyz
 from pyquante2 import rhf, basisset, h2, lih, ch4, h2o, mp2
+from pyquante2.scf.iterators import SCFIterator
 
 
-HBr = read_xyz('./molfiles/HBr.xyz')
-
-H2O4 = read_xyz('./molfiles/H2O_4.xyz')
-
-N8 = read_xyz('./molfiles/N8.xyz')
-
-class PyQuanteAssertions:
-    def assertPrecisionEqual(self, a, b, prec=4e-5):
-        x = abs(2*(a-b)/(a+b))
-        if x > prec:
-            raise AssertionError("%.9f is equal %.9f with precision %.9f)" % (a, b, x))
-
-
-class test_mp2(unittest.TestCase, PyQuanteAssertions):
+class test_mp2(unittest.TestCase):
     def test_H2(self):
         bfs = basisset(h2,'cc-pvdz')
-        solver=rhf(h2, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
+        hamiltonian=rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-h2.nocc()
-        emp2 = mp2(solver.i2,solver.orbs,solver.orbe,h2.nocc(),nvirt)
-        self.assertPrecisionEqual(emp2, -0.026304104341)
+        emp2 = mp2(hamiltonian, iterator.orbs, iterator.orbe, h2.nocc(), nvirt)
+        self.assertAlmostEqual(emp2, -0.026304104341, 6)
 
     def test_LiH(self):
         bfs = basisset(lih,'cc-pvdz')
-        solver=rhf(lih, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
+        hamiltonian=rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-lih.nocc()
-        emp2 = mp2(solver.i2,solver.orbs,solver.orbe,lih.nocc(),nvirt)
-        self.assertPrecisionEqual(emp2, -0.023948620832)
+        emp2 = mp2(hamiltonian, iterator.orbs, iterator.orbe, lih.nocc(), nvirt)
+        self.assertAlmostEqual(emp2, -0.023948620832, 5)
 
     def test_H2O(self):
         bfs = basisset(h2o,'cc-pvdz')
-        solver=rhf(h2o, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
+        hamiltonian=rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-h2o.nocc()
-        emp2 = mp2(solver.i2,solver.orbs,solver.orbe,h2o.nocc(),nvirt)
-        self.assertPrecisionEqual(emp2, -0.206440187835)
+        emp2 = mp2(hamiltonian, iterator.orbs, iterator.orbe, h2o.nocc(), nvirt)
+        self.assertAlmostEqual(emp2, -0.206440187835, 6)
 
     def test_CH4(self):
         bfs = basisset(ch4,'cc-pvdz')
-        solver=rhf(ch4, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
+        hamiltonian=rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-ch4.nocc()
-        emp2 = mp2(solver.i2,solver.orbs,solver.orbe,ch4.nocc(),nvirt)
-        self.assertPrecisionEqual(emp2, -0.166640105042)
+        emp2 = mp2(hamiltonian, iterator.orbs, iterator.orbe, ch4.nocc(), nvirt)
+        self.assertAlmostEqual(emp2, -0.166640105042, 5)
 
     def test_HBr(self):
+        HBr = read_xyz('./molfiles/HBr.xyz')
         bfs = basisset(HBr,'cc-pvdz')
-        solver=rhf(HBr, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
+        hamiltonian=rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-HBr.nocc()
-        emp2 = mp2(solver.i2,solver.orbs,solver.orbe,HBr.nocc(),nvirt)
-        self.assertPrecisionEqual(emp2, -0.153284373119)
+        emp2 = mp2(hamiltonian, iterator.orbs, iterator.orbe, HBr.nocc(), nvirt)
+        self.assertAlmostEqual(emp2, -0.153284373119, 6)
 
     def test_N8(self):
+        # 2.8 Gb memory needed
+        N8 = read_xyz('./molfiles/N8.xyz')
         bfs = basisset(N8,'cc-pvdz')
-        solver=rhf(N8, bfs, twoe_factory=libint_twoe_integrals)
-        solver.converge()
+        hamiltonian=rhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = SCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
         nvirt = len(bfs)-N8.nocc()
-        emp2 = mp2(solver.i2,solver.orbs,solver.orbe,N8.nocc(),nvirt)
-        self.assertPrecisionEqual(emp2, -1.328348475507)
+        emp2 = mp2(hamiltonian, iterator.orbs, iterator.orbe, N8.nocc(), nvirt)
+        self.assertAlmostEqual(emp2, -1.328348475507, 6)
 
 
 def runsuite(verbose=True):
