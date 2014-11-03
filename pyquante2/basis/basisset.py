@@ -16,7 +16,7 @@ from pyquante2.basis.cgbf import cgbf
 from pyquante2.basis.tools import sym2pow,sym2am,am2pow,am2sym
 
 class shell(object):
-    def __init__(self,am,origin,exps,coefs):
+    def __init__(self, am, origin, exps, coefs):
         self.am = am
         self.origin = origin
         self.exps = exps
@@ -30,7 +30,8 @@ class shell(object):
         return "%s shell: %s,%s" % (am2sym[self.am],self.exps,self.coefs)
 
 class basisset(object):
-    def __init__(self,atoms,name='sto-3g',**kwargs):
+    def __init__(self, atoms, name='sto-3g', **kwargs):
+        self.atoms = atoms
         self.bfs = []
         self.shells = []
         self.name = name
@@ -38,7 +39,6 @@ class basisset(object):
         omit_f = kwargs.get('omit_f',settings.omit_f)
         for atom in atoms:
             for sym,prims in basis_data[atom.atno]:
-                if omit_f and sym == 'F': continue
                 exps = [e for e,c in prims]
                 coefs = [c for e,c in prims]
                 self.shells.append(shell(sym2am[sym],atom.r,exps,coefs))
