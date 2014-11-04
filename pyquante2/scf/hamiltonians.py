@@ -107,6 +107,9 @@ class uhf(hamiltonian):
 
 
 class rohf(hamiltonian):
+    """Reference: Takashi Tsuchimochi1 and Gustavo E. Scuseria
+       J. Chem. Phys. 133, 141102 (2010)
+       ROHF theory made simple. DOI 10.1063/1.3503173"""
     name = 'ROHF'
 
     def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
@@ -167,6 +170,9 @@ class rohf(hamiltonian):
 
 
 class cuhf(uhf):
+    """Reference: Takashi Tsuchimochi1 and Gustavo E. Scuseria
+       J. Chem. Phys. 133, 141102 (2010)
+       ROHF theory made simple. DOI 10.1063/1.3503173"""
     name = 'CUHF'
 
     def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
