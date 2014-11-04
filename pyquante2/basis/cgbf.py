@@ -40,12 +40,7 @@ class cgbf(object):
             self.add_pgbf(expn, coef, False)
 
         self.pnorms = np.array([self.normalization(expn) for expn in self.pexps], 'd')
-
-    def normalization(self, expn):
-        l,m,n = self.powers
-        result = pow(2, 2*(l+m+n)+1.5) * pow(expn, l+m+n+1.5) / pow(np.pi, 1.5)
-        result /= fact2(2*l-1) * fact2(2*m-1) * fact2(2*n-1)
-        return np.sqrt(result)
+        self.check_normalization()
 
     def __getitem__(self, item):
         return list(zip(self.coefs, self.pgbfs)).__getitem__(item)
@@ -70,6 +65,18 @@ class cgbf(object):
         if renormalize:
             self.normalize()
 
+    def normalization(self, expn):
+        l,m,n = self.powers
+        result = pow(2, 2*(l+m+n)+1.5) * pow(expn, l+m+n+1.5) / pow(np.pi, 1.5)
+        result /= fact2(2*l-1) * fact2(2*m-1) * fact2(2*n-1)
+        return np.sqrt(result)
+
+    def check_normalization(self):
+        from pyquante2.ints.one import S
+        from numpy import sqrt
+        assert round(S(self,self) - 1.0, 7)==0.0
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+
