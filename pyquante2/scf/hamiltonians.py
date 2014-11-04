@@ -111,7 +111,7 @@ class rohf(hamiltonian):
 
     def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
         hamiltonian.__init__(self, bfs, onee_factory=onee_factory, twoe_factory=twoe_factory)
-        self.bfs = bfs
+        self.norb = len(bfs)
         self.nup = bfs.atoms.nup()
         self.ndown = bfs.atoms.ndown()
         # Guest and Sounders
@@ -139,22 +139,19 @@ class rohf(hamiltonian):
         Eone = trace2(Da + Db, h)
         Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
         E = self.Enuc + Eone + Etwo
-        # Effective Fock
+        # Create Effective Fock Matrix
         Fc = (Fa + Fb) / 2.0
         F2 = self.Acc * Fa + self.Bcc * Fb
         F1 = self.Aoo * Fa + self.Boo * Fb
         F0 = self.Avv * Fa + self.Bvv * Fb
-        Feff = np.zeros((len(self.bfs), len(self.bfs)),'d')
         # self.nup > self.ndown
-        Feff[self.nup:, self.nup:] = F0[self.nup:, self.nup:]
-        Feff[self.ndown:self.nup, self.ndown:self.nup] = F1[self.ndown:self.nup, self.ndown:self.nup]
-        Feff[:self.ndown, :self.ndown] = F2[:self.ndown, :self.ndown]
-        Feff[self.nup:, self.ndown:self.nup] = Fa[self.nup:, self.ndown:self.nup]
-        Feff[self.ndown:self.nup, self.nup:] = Fa[self.ndown:self.nup, self.nup:]
-        Feff[:self.ndown, self.ndown:self.nup] = Fb[:self.ndown, self.ndown:self.nup]
-        Feff[self.ndown:self.nup, :self.ndown] = Fb[self.ndown:self.nup, :self.ndown]
-        Feff[:self.ndown, self.nup:] = Fc[:self.ndown, self.nup:]
-        Feff[self.nup:, :self.ndown] = Fc[self.nup:, :self.ndown]
+        c = slice(0, self.ndown)
+        o = slice(self.ndown, self.nup)
+        v = slice(self.nup, self.norb)
+        Feff = np.zeros((self.norb, self.norb), 'd')
+        Feff[c, c], Feff[c, o], Feff[c, v] = F2[c, c], Fb[c, o], Fc[c, v]
+        Feff[o, c], Feff[o, o], Feff[o, v] = Fb[o, c], F1[o, o], Fa[o, v]
+        Feff[v, c], Feff[v, o], Feff[v, v] = Fc[v, c], Fa[v, o], F0[v, v]
         return Feff, E
 
     def eigenv(self, F):
@@ -172,10 +169,30 @@ class rohf(hamiltonian):
 class cuhf(uhf):
     name = 'CUHF'
 
-    def __init__(self, geo, bfs, norbsh=[], fi=[]):
-        rhf.__init__(self, geo, bfs)
-        self.norbsh = norbsh
-        self.fi = fi
+    def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
+        uhf.__init__(self, bfs, onee_factory=onee_factory, twoe_factory=twoe_factory)
+        self.norb = len(bfs)
+
+    def fock_energy(self, Da, Db):
+        # Fock
+        h = self.h
+        J = self.i2.get_j(Da + Db)
+        Ka, Kb = self.i2.get_k(Da), self.i2.get_k(Db)
+        Ga = J - Ka
+        Gb = J - Kb
+        Fa = h + Ga
+        Fb = h + Gb
+        # Energy
+        Eone = trace2(Da + Db, h)
+        Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
+        E = self.Enuc + Eone + Etwo
+        # Create Effective Fock Matrixs
+        Fc = (Fa + Fb) / 2.0
+        c = slice(0, self.ndown)
+        v = slice(self.nup, self.norb)
+        Fa[c, v] = Fc[c, v]
+        Fb[v, c] = Fc[v, c]
+        return Fa, Fb, E
 
 
 if __name__ == '__main__':
