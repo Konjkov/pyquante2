@@ -15,13 +15,7 @@ class SCFIterator(object):
             """Update orbital energies and eigenvectors"""
             (F, E), Eold = self.H.fock_energy(D), E
             orbe, orbs = self.H.eigenv(F)
-            print orbs.shape
             D = self.H.density(orbs)
-            print "F", F
-            F_mo = np.einsum('uj,vi,uv', orbs, orbs, F)
-            print "F_mo", F_mo
-            F_mo1 = np.einsum('uj,vi,uv', orbs, orbs, F_mo)
-            print "F_mo1", F_mo1
             if abs(E-Eold) < tol:
                 self.D = D
                 self.orbe, self.orbs = orbe, orbs
