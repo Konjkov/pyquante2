@@ -142,6 +142,9 @@ class rohf(hamiltonian):
         Eone = trace2(Da + Db, h)
         Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
         E = self.Enuc + Eone + Etwo
+        return Fa, Fb, E
+
+    def effective_fock(self, Fa, Fb):
         # Create Effective Fock Matrix
         Fc = (Fa + Fb) / 2.0
         F2 = self.Acc * Fa + self.Bcc * Fb
@@ -155,7 +158,7 @@ class rohf(hamiltonian):
         Feff[c, c], Feff[c, o], Feff[c, v] = F2[c, c], Fb[c, o], Fc[c, v]
         Feff[o, c], Feff[o, o], Feff[o, v] = Fb[o, c], F1[o, o], Fa[o, v]
         Feff[v, c], Feff[v, o], Feff[v, v] = Fc[v, c], Fa[v, o], F0[v, v]
-        return Feff, E
+        return Feff
 
     def eigenv(self, F):
         """ Eigenvalues and Eigenvectors
