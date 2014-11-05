@@ -6,13 +6,14 @@ from pyquante2.scf.iterators import SCFIterator, AveragingIterator, USCFIterator
 
 
 class test_scf(unittest.TestCase):
+    """reference energies obtained from NWCHEM 6.5"""
     def test_h2(self):
         bfs = basisset(h2,'sto-3g')
         hamiltonian = rhf(bfs)
         iterator = SCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -1.117099582955609, 6)
+        self.assertAlmostEqual(iterator.energy, -1.117099435262, 7)
 
     def test_h2_631(self):
         bfs = basisset(h2,'6-31gss')
@@ -20,7 +21,7 @@ class test_scf(unittest.TestCase):
         iterator = SCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -1.1313335790123258, 7)
+        self.assertAlmostEqual(iterator.energy, -1.131333590574, 7)
 
     def test_lih(self):
         bfs = basisset(lih,'sto-3g')
@@ -51,7 +52,7 @@ class test_scf(unittest.TestCase):
         iterator = SCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -2.234185653441159, 6)
+        self.assertAlmostEqual(iterator.energy, -2.234185358600, 7)
         # This is not quite equal to 2x the h2 energy, but very close
 
     def test_h2o(self):
@@ -60,7 +61,7 @@ class test_scf(unittest.TestCase):
         iterator = SCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -74.959856675848712, 5)
+        self.assertAlmostEqual(iterator.energy, -74.959857776754, 5)
 
     def test_h2o_averaging(self):
         bfs = basisset(h2o,'sto-3g')
@@ -68,7 +69,7 @@ class test_scf(unittest.TestCase):
         iterator = AveragingIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -74.959856675848712, 5)
+        self.assertAlmostEqual(iterator.energy, -74.959857776754, 5)
 
     def test_oh(self):
         bfs = basisset(oh,'sto-3g')
@@ -180,8 +181,8 @@ class test_unstable(unittest.TestCase):
         """
         CrCO6 = read_xyz('./molfiles/CrCO6.xyz')
         bfs = basisset(CrCO6,'sto-3g')
-        hamiltonian = rhf(bfs, twoe_factory=libint_twoe_integrals)
-        iterator = AveragingIterator(hamiltonian)
+        hamiltonian = rohf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = ROSCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
         self.assertAlmostEqual(iterator.energy, -1699.539642257497, 0)
@@ -212,6 +213,17 @@ class test_libint_uhf(unittest.TestCase):
 
 
 class test_libint_rohf(unittest.TestCase):
+    """reference energies obtained from NWCHEM 6.5"""
+    def test_CH3(self):
+        """CH3 radical"""
+        CH3 = read_xyz('./molfiles/CH3.xyz')
+        bfs = basisset(CH3,'sto-3g')
+        hamiltonian = cuhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = USCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
+        self.assertAlmostEqual(iterator.energy, -38.9493, 5)
+
     def test_CF3(self):
         """CF3 radical"""
         CF3 = read_xyz('./molfiles/CF3.xyz')
@@ -220,7 +232,7 @@ class test_libint_rohf(unittest.TestCase):
         iterator = ROSCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -331.479341223402, 4)
+        self.assertAlmostEqual(iterator.energy, -331.479340943449, 5)
 
     def test_oh(self):
         bfs = basisset(oh,'sto-3g')
@@ -228,10 +240,21 @@ class test_libint_rohf(unittest.TestCase):
         iterator = ROSCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -74.359151530162, 4)
+        self.assertAlmostEqual(iterator.energy, -74.359151530162, 5)
+
+    def test_N8(self):
+        """N8"""
+        N8 = read_xyz('./molfiles/N8.xyz')
+        bfs = basisset(N8,'cc-pvdz')
+        hamiltonian = rohf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = ROSCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
+        self.assertAlmostEqual(iterator.energy, -434.992755329296, 5)
 
 
 class test_libint_cuhf(unittest.TestCase):
+    """use UHF reference"""
     def test_CF3(self):
         """CF3 radical"""
         CF3 = read_xyz('./molfiles/CF3.xyz')
@@ -240,7 +263,7 @@ class test_libint_cuhf(unittest.TestCase):
         iterator = USCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -331.479341223402, 4)
+        self.assertAlmostEqual(iterator.energy, -331.480688906400, 2)
 
     def test_oh(self):
         bfs = basisset(oh,'sto-3g')
@@ -248,7 +271,7 @@ class test_libint_cuhf(unittest.TestCase):
         iterator = USCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -74.359151530162, 4)
+        self.assertAlmostEqual(iterator.energy, -74.360233544941, 2)
 
 
 def runsuite(verbose=True):
@@ -263,7 +286,7 @@ def runsuite(verbose=True):
     suite4 = unittest.TestLoader().loadTestsFromTestCase(test_libint_uhf)
     suite5 = unittest.TestLoader().loadTestsFromTestCase(test_libint_rohf)
     suite6 = unittest.TestLoader().loadTestsFromTestCase(test_libint_cuhf)
-    alltests = unittest.TestSuite([suite1])
+    alltests = unittest.TestSuite([suite5])
     unittest.TextTestRunner(verbosity=verbosity).run(alltests)
     # Running without verbosity is equivalent to replacing the above
     # two lines with the following:
