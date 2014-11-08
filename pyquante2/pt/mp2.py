@@ -1,6 +1,4 @@
 import numpy as np
-from itertools import product
-from functools import reduce
 
 
 def mp2(hamiltonian, orbs, orbe, nocc, nvirt, verbose=False):
