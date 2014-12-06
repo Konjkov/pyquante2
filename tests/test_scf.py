@@ -218,8 +218,8 @@ class test_libint_rohf(unittest.TestCase):
         """CH3 radical"""
         CH3 = read_xyz('./molfiles/CH3.xyz')
         bfs = basisset(CH3,'sto-3g')
-        hamiltonian = cuhf(bfs, twoe_factory=libint_twoe_integrals)
-        iterator = USCFIterator(hamiltonian)
+        hamiltonian = rohf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = ROSCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
         self.assertAlmostEqual(iterator.energy, -38.9493, 5)
@@ -254,7 +254,17 @@ class test_libint_rohf(unittest.TestCase):
 
 
 class test_libint_cuhf(unittest.TestCase):
-    """use UHF reference"""
+    """use UHF energy reference"""
+    def test_CH3(self):
+        """CH3 radical"""
+        CH3 = read_xyz('./molfiles/CH3.xyz')
+        bfs = basisset(CH3,'sto-3g')
+        hamiltonian = cuhf(bfs, twoe_factory=libint_twoe_integrals)
+        iterator = USCFIterator(hamiltonian)
+        iterator.converge()
+        self.assertTrue(iterator.converged)
+        self.assertAlmostEqual(iterator.energy, -38.952023222533, 5)
+
     def test_CF3(self):
         """CF3 radical"""
         CF3 = read_xyz('./molfiles/CF3.xyz')
@@ -263,7 +273,7 @@ class test_libint_cuhf(unittest.TestCase):
         iterator = USCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -331.480688906400, 2)
+        self.assertAlmostEqual(iterator.energy, -331.480688906400, 5)
 
     def test_oh(self):
         bfs = basisset(oh,'sto-3g')
@@ -271,7 +281,7 @@ class test_libint_cuhf(unittest.TestCase):
         iterator = USCFIterator(hamiltonian)
         iterator.converge()
         self.assertTrue(iterator.converged)
-        self.assertAlmostEqual(iterator.energy, -74.360233544941, 2)
+        self.assertAlmostEqual(iterator.energy, -74.360233544941, 4)
 
 
 def runsuite(verbose=True):
@@ -286,7 +296,7 @@ def runsuite(verbose=True):
     suite4 = unittest.TestLoader().loadTestsFromTestCase(test_libint_uhf)
     suite5 = unittest.TestLoader().loadTestsFromTestCase(test_libint_rohf)
     suite6 = unittest.TestLoader().loadTestsFromTestCase(test_libint_cuhf)
-    alltests = unittest.TestSuite([suite5])
+    alltests = unittest.TestSuite([suite6])
     unittest.TextTestRunner(verbosity=verbosity).run(alltests)
     # Running without verbosity is equivalent to replacing the above
     # two lines with the following:
