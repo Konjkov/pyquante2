@@ -3,6 +3,7 @@ from pyquante2.grid.grid import grid
 from pyquante2.ints.integrals import onee_integrals, twoe_integrals
 import numpy as np
 
+np.set_printoptions(threshold='nan', linewidth=10000)
 
 class hamiltonian(object):
     """ Class that represent hamiltonian manipulation methods, not state
@@ -24,27 +25,21 @@ class rhf(hamiltonian):
         hamiltonian.__init__(self, bfs, onee_factory=onee_factory, twoe_factory=twoe_factory)
         self.nocc = bfs.atoms.nocc()
 
-    def fock_energy(self, D):
-        """ Fock matrix & energy
-        """
-        h = self.h
-        G = self.i2.get_2jk(D)
-        F = h + G
-        # Energy
-        Eone = 2 * trace2(h, D)
-        Etwo = trace2(D, G)
-        E = self.Enuc + Eone + Etwo
-        return F, E
+    def fock(self, D):
+        """ Fock matrix"""
+        return self.h + self.i2.get_2jk(D)
+
+    def energy(self, D, F):
+        """ Energy"""
+        return self.Enuc + trace2(self.h + F, D)
 
     def eigenv(self, F):
-        """ Eigenvalues and Eigenvectors
-        """
+        """ Eigenvalues and Eigenvectors"""
         orbe, orbs = geigh(F, self.i1.S)
         return orbe, orbs
 
     def density(self, orbs):
-        """ Electron density
-        """
+        """ Electron density"""
         return dmat(orbs, self.nocc)
 
 
@@ -58,18 +53,14 @@ class rdft(rhf):
         # make grid here.
 
     def fock(self, D):
-        h = self.i1.T + self.i1.V
-        G = self.i2.get_2jk(D)
+        """ Fock matrix"""
         XC = 0
-        return h + G + XC
+        return self.h + self.i2.get_2jk(D) + XC
 
     def energy(self, D, F):
-        h = self.h
-        G = F - h # TODO: not optimal
-        Eone = 2 * trace2(h, D)
-        Etwo = trace2(D, G)
+        """ Energy"""
         Exc = 0.0 # TODO: not implemented
-        return self.Enuc + Eone + Etwo + Exc
+        return self.Enuc + trace2(self.h + F, D) + Exc
 
 
 class uhf(hamiltonian):
@@ -80,20 +71,19 @@ class uhf(hamiltonian):
         self.nup = bfs.atoms.nup()
         self.ndown = bfs.atoms.ndown()
 
-    def fock_energy(self, Da, Db):
-        # Fock
-        h = self.h
+    def fock(self, Da, Db):
+        """ Fock matrix"""
         J = self.i2.get_j(Da + Db)
         Ka, Kb = self.i2.get_k(Da), self.i2.get_k(Db)
-        Ga = J - Ka
-        Gb = J - Kb
-        Fa = h + Ga
-        Fb = h + Gb
-        # Energy
-        Eone = trace2(Da + Db, h)
-        Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
-        E = self.Enuc + Eone + Etwo
-        return Fa, Fb, E
+        Fa = self.h + J - Ka
+        Fb = self.h + J - Kb
+        return Fa, Fb
+
+    def energy(self, Da, Db, Fa, Fb):
+        """ Energy"""
+        Ea = trace2(self.h + Fa, Da)
+        Eb = trace2(self.h + Fb, Db)
+        return self.Enuc + (Ea + Eb)/2
 
     def eigenv(self, Fa, Fb):
         orbea, orbsa = geigh(Fa, self.i1.S)
@@ -117,7 +107,9 @@ class rohf(hamiltonian):
         self.norb = len(bfs)
         self.nup = bfs.atoms.nup()
         self.ndown = bfs.atoms.ndown()
-        # Guest and Sounders
+        # Canonical form
+        # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = 0.0, 1.0, 1.0, 0.0, 1.0, 0.0
+        # Guest and Saunders
         self.Acc = self.Bcc = self.Aoo = self.Boo = self.Avv = self.Bvv = 0.5
         # Roothaan single matrix  -1/2  3/2  1/2  1/2  3/2 -1/2
         # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = -0.5, 1.5, 0.5, 0.5, 1.5, -0.5
@@ -129,23 +121,23 @@ class rohf(hamiltonian):
         # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = 1/3.0, 2/3.0, 1/3.0, 1/3.0, 2/3.0, 1/3.0
         # Faegri and Manne         1/2  1/2   1    0   1/2  1/2
         # self.Acc, self.Bcc, self.Aoo, self.Boo, self.Avv, self.Bvv = 0.5, 0.5, 1.0, 0.0, 0.5, 0.5
+        # R-matrix projection operator = D (density)
 
-    def fock_energy(self, Da, Db):
-        h = self.h
+    def fock(self, Da, Db):
+        """ Fock matrix"""
         J = self.i2.get_j(Da + Db)
         Ka, Kb = self.i2.get_k(Da), self.i2.get_k(Db)
-        Ga = J - Ka
-        Gb = J - Kb
-        Fa = h + Ga
-        Fb = h + Gb
-        # Energy
-        Eone = trace2(Da + Db, h)
-        Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
-        E = self.Enuc + Eone + Etwo
-        return Fa, Fb, E
+        Fa = self.h + J - Ka
+        Fb = self.h + J - Kb
+        return Fa, Fb
+
+    def energy(self, Da, Db, Fa, Fb):
+        """ Energy"""
+        Ea = trace2(self.h + Fa, Da)
+        Eb = trace2(self.h + Fb, Db)
+        return self.Enuc + (Ea + Eb)/2
 
     def effective_fock(self, Fa, Fb):
-        # Create Effective Fock Matrix
         Fc = (Fa + Fb) / 2.0
         F2 = self.Acc * Fa + self.Bcc * Fb
         F1 = self.Aoo * Fa + self.Boo * Fb
@@ -196,8 +188,13 @@ class cuhf(uhf):
         Etwo = trace2(Ga, Da)/2 + trace2(Gb, Db)/2
         E = self.Enuc + Eone + Etwo
         # Create Effective Fock Matrixs
+        P = (Da + Db)/2 # charge density matrix
+        M = (Da - Db)/2 # spin density matrix
+        # obtain Cno - natural orbitals
+
         Fc = (Fa + Fb) / 2.0
         c = slice(0, self.ndown)
+        o = slice(self.ndown, self.nup)
         v = slice(self.nup, self.norb)
         Fa[c, v] = Fc[c, v]
         Fb[v, c] = Fc[v, c]

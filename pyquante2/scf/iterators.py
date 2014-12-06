@@ -13,7 +13,8 @@ class SCFIterator(object):
         D = self.D
         for iteration in range(maxiters):
             """Update orbital energies and eigenvectors"""
-            (F, E), Eold = self.H.fock_energy(D), E
+            F = self.H.fock(D)
+            E, Eold = self.H.energy(D, F), E
             orbe, orbs = self.H.eigenv(F)
             D = self.H.density(orbs)
             if abs(E-Eold) < tol:
@@ -35,7 +36,8 @@ class USCFIterator(object):
         Da = self.Da
         Db = self.Db
         for iteration in range(maxiters):
-            (Fa, Fb, E), Eold = self.H.fock_energy(Da, Db), E
+            Fa, Fb = self.H.fock(Da, Db)
+            E, Eold = self.H.energy(Da, Db, Fa, Fb), E
             (orbea, orbsa), (orbeb, orbsb) = self.H.eigenv(Fa, Fb)
             Da, Db = self.H.density(orbsa, orbsb)
             if abs(E-Eold) < tol:
@@ -57,9 +59,11 @@ class ROSCFIterator(object):
         E = 0
         Da = self.Da
         Db = self.Db
+        orbs = None
         for iteration in range(maxiters):
-            (Fa, Fb, E), Eold = self.H.fock_energy(Da, Db), E
-            Feff = self.H.effective_fock(Fa, Fb)
+            Fa, Fb = self.H.fock(Da, Db)
+            E, Eold = self.H.energy(Da, Db, Fa, Fb), E
+            Feff = self.H.effective_fock(Fa, Fb, orbs)
             orbe, orbs = self.H.eigenv(Feff)
             Da, Db = self.H.density(orbs)
             if abs(E-Eold) < tol:
@@ -75,7 +79,8 @@ class AveragingIterator(SCFIterator):
         E = 0
         D = Dold = self.D
         for iteration in range(maxiters):
-            (F, E), Eold = self.H.fock_energy(D), E
+            F = self.H.fock(D)
+            E, Eold = self.H.energy(D, F), E
             orbe, orbs = self.H.eigenv(F)
             D = self.H.density(orbs)
             D, Dold = (1-fraction)*Dold + fraction*D, D
