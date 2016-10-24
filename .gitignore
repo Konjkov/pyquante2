@@ -13,3 +13,5 @@ docs/_build
 .svn/*
 .idea/*
 cython/cbecke.c
+cython/clibint.c
+cython/ctwo.c
