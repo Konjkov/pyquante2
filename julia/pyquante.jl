@@ -1,4 +1,5 @@
 # coding: utf-8
+
 """
 # PyQuante in Julia
 Experimenting with writing quantum chemistry in Julia
@@ -50,9 +51,9 @@ trace2(A,B) = sum(A.*B)
 
 function test_utils()
     @assert factorial2(6)==48
-    @assert collect(pairs(3)) == {(1,1),(1,2),(1,3),(2,2),(2,3),(3,3)}
-    @assert collect(pairs(3,"subdiag")) == {(1,2),(1,3),(2,3)}
-    @assert collect(pairs(2,"rect")) == {(1,1),(1,2),(2,1),(2,2)}
+    @assert collect(pairs(3)) == [(1,1),(1,2),(1,3),(2,2),(2,3),(3,3)]
+    @assert collect(pairs(3,"subdiag")) == [(1,2),(1,3),(2,3)]
+    @assert collect(pairs(2,"rect")) == [(1,1),(1,2),(2,1),(2,2)]
     @assert iindex(1,1,1,1) == 1
     @assert iindex(1,1,1,2) == iindex(1,1,2,1) == iindex(1,2,1,1) == iindex(2,1,1,1) == 2
     @assert iindex(1,1,2,2) == iindex(2,2,1,1) == 4
@@ -209,7 +210,7 @@ function overlap(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,
                  bI::Int64,bJ::Int64,bK::Int64)
     gamma = aexpn+bexpn
     px,py,pz = gaussian_product_center(aexpn,ax,ay,az,bexpn,bx,by,bz)
-    rab2 = dist2(ax-bx,ay-by,az-bz) 
+    rab2 = dist2(ax-bx,ay-by,az-bz)
     pre = (pi/gamma)^1.5*exp(-aexpn*bexpn*rab2/gamma)
     wx = overlap1d(aI,bI,px-ax,px-bx,gamma)
     wy = overlap1d(aJ,bJ,py-ay,py-by,gamma)
@@ -223,7 +224,7 @@ end
 
 function gaussian_product_center(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,
                                     bexpn::Float64,bx::Float64,by::Float64,bz::Float64)
-    return (aexpn*[ax,ay,az]+bexpn*[bx,by,bz])/(aexpn+bexpn)    
+    return (aexpn*[ax,ay,az]+bexpn*[bx,by,bz])/(aexpn+bexpn)
 end
 
 function overlap1d(la::Int64,lb::Int64,ax::Float64,bx::Float64,gamma::Float64)
@@ -458,17 +459,17 @@ function test_gamma()
     # gammainc test functions. Test values taken from Mathematica
     # println("a=0.5 test")
     @assert maximum([gammainc(0.5,float(x)) for x in 0:10]
-            -{0, 1.49365, 1.69181, 1.7471, 1.76416, 1.76968, 
-                1.77151, 1.77213, 1.77234, 1.77241, 1.77244}) < 1e-5
+            -[0, 1.49365, 1.69181, 1.7471, 1.76416, 1.76968,
+                 1.77151, 1.77213, 1.77234, 1.77241, 1.77244]) < 1e-5
 
     # println("a=1.5 test")
     @assert maximum([gammainc(1.5,float(x)) for x in 0:10]
-            -{0, 1.49365, 1.69181, 1.7471, 1.76416, 1.76968, 
-                1.77151, 1.77213, 1.77234, 1.77241, 1.77244}) < 1e-5
+            -[0, 1.49365, 1.69181, 1.7471, 1.76416, 1.76968,
+                 1.77151, 1.77213, 1.77234, 1.77241, 1.77244]) < 1e-5
     # println("a=2.5 test")
     @assert maximum([gammainc(2.5,float(x)) for x in 0:10]
-            -{0, 0.200538, 0.59898, 0.922271, 1.12165, 1.22933, 
-                1.2831, 1.30859, 1.32024, 1.32542, 1.32768}) < 1e-5
+            -[0, 0.200538, 0.59898, 0.922271, 1.12165, 1.22933,
+                 1.2831, 1.30859, 1.32024, 1.32542, 1.32768]) < 1e-5
 end
 
 function test_na()
@@ -477,16 +478,16 @@ function test_na()
     push!(c,1,1)
     @assert isapprox(amplitude(c,0,0,0),0.71270547)
     @assert isapprox(nuclear_attraction(s,s,0.,0.,0.),-1.59576912)
-    @assert isapprox(nuclear_attraction(c,c,0.,0.,0.),-1.595769)
+    @assert isapprox(nuclear_attraction(c,c,0.,0.,0.),-1.59576912)
 end
 
 function test_fgamma()
-    for (x,res) in {(0.,1),
-                    (30.,0.161802),
-                    (60.,0.1144114),
-                    (90.,0.0934165),
-                    (120.,0.08090108),
-                    (300.,0.051166336)}
+    for (x,res) in [(0.,1),
+                    (30.,0.16180215938),
+                    (60.,0.114411404108),
+                    (90.,0.0934165202733),
+                    (120.,0.0809010796898),
+                    (300.,0.0511663353973)]
         @assert isapprox(res,Fgamma(0,x))
     end
 end
@@ -528,7 +529,7 @@ function coulomb(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,
 
     rab2 = dist2(ax-bx,ay-by,az-bz)
     rcd2 = dist2(cx-dx,cy-dy,cz-dz)
-    
+
     px,py,pz = gaussian_product_center(aexpn,ax,ay,az,bexpn,bx,by,bz)
     qx,qy,qz = gaussian_product_center(cexpn,cx,cy,cz,dexpn,dx,dy,dz)
     rpq2 = dist2(px-qx,py-qy,pz-qz)
@@ -536,11 +537,11 @@ function coulomb(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,
     g1 = aexpn+bexpn
     g2 = cexpn+dexpn
     delta = 0.25*(1/g1+1/g2)
-    
+
     Bx = Barray(aI,bI,cI,dI,px,ax,bx,qx,cx,dx,g1,g2,delta)
     By = Barray(aJ,bJ,cJ,dJ,py,ay,by,qy,cy,dy,g1,g2,delta)
     Bz = Barray(aK,bK,cK,dK,pz,az,bz,qz,cz,dz,g1,g2,delta)
-    
+
     s = 0
     #println("$(aI+bI+cI+dI),$(aJ+bJ+cJ+dJ),$(aK+bK+cK+dK)")
     for I in 0:(aI+bI+cI+dI)
@@ -551,7 +552,7 @@ function coulomb(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,
             end
         end
     end
-    return 2*pi^(2.5)/(g1*g2*sqrt(g1+g2))*exp(-aexpn*bexpn*rab2/g1)*exp(-cexpn*dexpn*rcd2/g2)*s
+    return 2pi^(2.5)/(g1*g2*sqrt(g1+g2))*exp(-aexpn*bexpn*rab2/g1)*exp(-cexpn*dexpn*rcd2/g2)*s
 end
 
 function coulomb(a::PGBF,b::PGBF,c::PGBF,d::PGBF)
@@ -563,7 +564,7 @@ end
 
 fB(i::Int64,l1::Int64,l2::Int64,p::Float64,a::Float64,b::Float64,r::Int64,g::Float64) = binomial_prefactor(i,l1,l2,p-a,p-b)*B0(i,r,g)
 B0(i::Int64,r::Int64,g::Float64) = fact_ratio2(i,r)*(4g)^(r-i)
-fact_ratio2(a::Int64,b::Int64) = factorial(a,b)/factorial(a-2b)
+fact_ratio2(a::Int64,b::Int64) = factorial(a)/factorial(b)/factorial(a-2b)
 
 function Bterm(i1::Int64,i2::Int64,r1::Int64,r2::Int64,u::Int64,
                l1::Int64,l2::Int64,l3::Int64,l4::Int64,
@@ -674,7 +675,7 @@ function vrr(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,aI::Int64,aJ::In
     zeta,eta = aexpn+bexpn,cexpn+dexpn
     wx,wy,wz = gaussian_product_center(zeta,px,py,pz,eta,qx,qy,qz)
     #println("P: $px,$py,$pz, Q: $qx,$qy,$qz, W: $wx,$wy,$wz, $zeta,$eta")
-    
+
     val = 0
     if cK>0
         val = (qz-cz)*vrr(aexpn,ax,ay,az,aI,aJ,aK,bexpn,bx,by,bz,
@@ -801,8 +802,8 @@ function vrr(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,aI::Int64,aJ::In
     rcd2 = dist2(cx-dx,cy-dy,cz-dz)
     rpq2 = dist2(px-qx,py-qy,pz-qz)
     T = zeta*eta/(zeta+eta)*rpq2
-    Kab = sqrt(2)*pi^1.25/zeta*exp(-aexpn*bexpn*rab2/zeta)
-    Kcd = sqrt(2)*pi^1.25/eta*exp(-cexpn*dexpn*rcd2/eta)
+    Kab = sqrt(2)pi^1.25/zeta*exp(-aexpn*bexpn*rab2/zeta)
+    Kcd = sqrt(2)pi^1.25/eta*exp(-cexpn*dexpn*rcd2/eta)
     #println("rab2=$rab2,rcd2=$rcd2,rpq2=$rpq2,T=$T,Kab=$Kab,Kcd=$Kcd")
     return Kab*Kcd/sqrt(zeta+eta)*Fgamma(m,T)
 end
@@ -820,32 +821,22 @@ function vrr_iter(aexpn::Float64,ax::Float64,ay::Float64,az::Float64,aI::Int64,a
     rcd2 = dist2(cx-dx,cy-dy,cz-dz)
     rpq2 = dist2(px-qx,py-qy,pz-qz)
     T = zeta*eta/(zeta+eta)*rpq2
-    Kab = sqrt(2)*pi^1.25/zeta*exp(-aexpn*bexpn*rab2/zeta)
-    Kcd = sqrt(2)*pi^1.25/eta*exp(-cexpn*dexpn*rcd2/eta)
+    Kab = sqrt(2)pi^1.25/zeta*exp(-aexpn*bexpn*rab2/zeta)
+    Kcd = sqrt(2)pi^1.25/eta*exp(-cexpn*dexpn*rcd2/eta)
     mtot = aI+aJ+aK+cI+cJ+cK+M
 
     vrr_terms = zeros(Float64,(aI+1,aJ+1,aK+1,cI+1,cJ+1,cK+1,mtot+1))
-    #vrr_terms = zeros(Float64,(aI+2,aJ+2,aK+2,cI+2,cJ+2,cK+2,mtot+6))
-    
-    @show (aI,aJ,aK,cI,cJ,cK)
-    
+
     for m in 0:mtot
         vrr_terms[1,1,1, 1,1,1, m+1] = Fgamma(m,T)*Kab*Kcd/sqrt(zeta+eta)
     end
-    
+
     for i in 0:(aI-1)
         for m in 0:(mtot-i-1)
-            @show i m
-            @show vrr_terms[i+2,1,1, 1,1,1, m+1]
-            @show vrr_terms[i+1,1,1, 1,1,1, m+1]
-            @show vrr_terms[i+1,1,1, 1,1,1, m+2]
-            @show (px-ax,wx-px)
-            
             vrr_terms[i+2,1,1, 1,1,1, m+1] = (
                  (px-ax)*vrr_terms[i+1,1,1, 1,1,1, m+1] + 
                  (wx-px)*vrr_terms[i+1,1,1, 1,1,1, m+2])
 
-            @show vrr_terms[i+2,1,1, 1,1,1, m+1]
             if i>0
                 vrr_terms[i+2,1,1, 1,1,1, m+1] += i/2/zeta*(
                     vrr_terms[i,1,1, 1,1,1, m+1] -
@@ -978,7 +969,7 @@ function test_vrr()
     cI=cJ=cK=0
     M=0
 
-    for (ax,ay,az, aI,aJ,aK, cI,cJ,cK, result) in {
+    for (ax,ay,az, aI,aJ,aK, cI,cJ,cK, result) in [
             (0.,0.,0., 0,0,0, 0,0,0, 4.37335456733),
             (0.,0.,0., 1,0,0, 1,0,0, 0.182223107579),
             (0.,0.,0., 0,1,0, 0,1,0, 0.182223107579),
@@ -1003,14 +994,15 @@ function test_vrr()
             (3.,2.,1., 1,1,0, 1,1,0, 5.97677147819e-05),
             (3.,2.,1., 0,1,1, 0,1,1, 1.57429039496e-06),
             (3.,2.,1., 1,0,1, 1,0,1, 4.00292836291e-06)
-        }
+        ]
 
         val1 = vrr(aexpn,ax,ay,az,aI,aJ,aK,bexpn,bx,by,bz,
             cexpn,cx,cy,cz,cI,cJ,cK,dexpn,dx,dy,dz,M)
         val2 = vrr(cexpn,cx,cy,cz,cI,cJ,cK,dexpn,dx,dy,dz,
             aexpn,ax,ay,az,aI,aJ,aK,bexpn,bx,by,bz,M)
-        @assert isapprox(val1,val2)
-        @assert isapprox(val1,result)
+        @show val1,val2,result
+        @assert isapprox(val1,val2, rtol=1e-11)
+        @assert isapprox(val1,result, rtol=1e-7)
         val3 = vrr_iter(aexpn,ax,ay,az,aI,aJ,aK,bexpn,bx,by,bz,
             cexpn,cx,cy,cz,cI,cJ,cK,dexpn,dx,dy,dz,M)
         val4 = vrr_iter(cexpn,cx,cy,cz,cI,cJ,cK,dexpn,dx,dy,dz,
@@ -1028,7 +1020,7 @@ function test_hrr()
     dI,dJ,dK = 1,0,1
 
 
-    for (ax,ay,az, aI,aJ,aK, cI,cJ,cK, result) in {
+    for (ax,ay,az, aI,aJ,aK, cI,cJ,cK, result) in [
             (0.,0.,0., 0,0,0, 0,0,0, 0.0136667330685),
             (0.,0.,0., 1,0,0, 1,0,0, 0.00821630976139),
             (0.,0.,0., 0,1,0, 0,1,0, 0.00122024402397),
@@ -1053,16 +1045,16 @@ function test_hrr()
             (3.,2.,1., 1,1,0, 1,1,0, 7.37307761485e-06),
             (3.,2.,1., 0,1,1, 0,1,1, 2.53332441858e-07),
             (3.,2.,1., 1,0,1, 1,0,1, 2.4521155336e-06)
-        }
+        ]
         #println("hrr($aexpn,$ax,$ay,$az,$aI,$aJ,$aK,$bexpn,$bx,$by,$bz,$bI,$bJ,$bK,")
         #println("    $cexpn,$cx,$cy,$cz,$cI,$cJ,$cK,$dexpn,$dx,$dy,$dz,$dI,$dJ,$dK)")
         val1 = hrr(aexpn,ax,ay,az,aI,aJ,aK,bexpn,bx,by,bz,bI,bJ,bK,
             cexpn,cx,cy,cz,cI,cJ,cK,dexpn,dx,dy,dz,dI,dJ,dK)
         val2 = hrr(cexpn,cx,cy,cz,cI,cJ,cK,dexpn,dx,dy,dz,dI,dJ,dK,
             aexpn,ax,ay,az,aI,aJ,aK,bexpn,bx,by,bz,bI,bJ,bK)
-        #@show val1,val2,result
+        @show val1,val2,result
         @assert isapprox(val1,val2)
-        @assert isapprox(val1,result)
+        @assert isapprox(val1,result, rtol=1e-6)
     end
 end
 
@@ -1070,9 +1062,10 @@ end
 # ## Basis Set Data
 # Note use of curly braces here. Julia assumes that if you have square braces, you want
 # things flattened as much as possible (to be as fast as possible, I guess). Curlys 
-# preserve the list structure the way I would expect from Python
+# preserve the list structure the way I would expect from Python.
+# Curly braces is deprecated in Julia v0.5. Use "Any[a,b, ...]" instead.
 
-sto3g = {
+sto3g = Any[
     # H
     [('S',
       [(3.4252509099999999, 0.15432897000000001),
@@ -1187,8 +1180,8 @@ sto3g = {
        [(8.2463151000000003, 0.15591627),
         (1.9162661999999999, 0.60768372000000004),
             (0.62322929999999999, 0.39195739000000002)])]
-}
-basis_set_data = {"sto3g" => sto3g};
+]
+basis_set_data = Dict{AbstractString,Any}("sto3g" => sto3g);
 
 
 # ## Atoms and Molecules
@@ -1277,11 +1270,11 @@ function build_basis(mol::Molecule,name="sto3g")
     return basis_set
 end
 
-sym2power = {
+sym2power = Dict{Char,Array}(
     'S' => [(0,0,0)],
     'P' => [(1,0,0),(0,1,0),(0,0,1)],
     'D' => [(2,0,0),(0,2,0),(0,0,2),(1,1,0),(1,0,1),(0,1,1)]
-    } 
+    )
 
 
 function test_geo_basis()
@@ -1294,7 +1287,8 @@ function test_geo_basis()
     l,r = bfs.bfs
     @assert isapprox(overlap(l,l),1)
     @assert isapprox(overlap(r,r),1)
-    @assert isapprox(overlap(l,r),0.66473625)
+    @show overlap(l,r)
+    @assert isapprox(overlap(l,r),0.66473625, rtol=1e-5)
     @assert isapprox(kinetic(l,l),0.76003188)
     @assert isapprox(kinetic(r,r),0.76003188)
     @assert isapprox(kinetic(l,r),0.24141861181119084)
@@ -1403,12 +1397,17 @@ end
 
 function test_lih()
     @time Energy, E, U = rhf(lih)
-    @assert isapprox(Energy,-7.86073270525799)
+    @assert isapprox(Energy,-7.86073270525799, rtol=1e-5)
 end
 
 function test_h2o()
     @time Energy,E,U = rhf(h2o)
-    @assert isapprox(Energy,-74.9597609118851)
+    @assert isapprox(Energy,-74.9597609118851, rtol=1e-5)
+end
+
+function test_c6h6()
+    @time Energy,E,U = rhf(c6h6)
+    @assert isapprox(Energy,-227.89063720714472)
 end
 
 function test()
@@ -1431,9 +1430,7 @@ function test()
     test_h2()
     test_lih()
     test_h2o()
+    test_c6h6()
 end
 
 test()
-
-
-
