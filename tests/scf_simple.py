@@ -57,8 +57,47 @@ def scf_simple(geo,basisname='sto-3g',maxiter=25,verbose=False):
         print ("Warning: Maxiter %d hit in scf_simple" % maxiter)
     return Energy,E,U
 
+def uhf_simple(geo,basisname='sto3g',maxiter=25,verbose=False):
+    if geo.nopen() == 0: return scf_simple(geo,basisname,maxiter,verbose)
+    bfs = basisset(geo,basisname)
+    i1 = onee_integrals(bfs,geo)
+    i2 = twoe_integrals(bfs)
+    h = i1.T + i1.V
+    E,U = geigh(h,i1.S)
+    Enuke = geo.nuclear_repulsion()
+    Eold = Energy = 0
+    ca = cb = U
+    na,nb = geo.nup(),geo.ndown()
+
+    for i in xrange(maxiter):
+        Energy = Enuke
+        Da = dmat(ca,na)
+        Db = dmat(cb,nb)
+        h = i1.T + i1.V
+        Energy += trace2(Da+Db,h)/2
+        Ja,Ka = i2.get_j(Da),i2.get_k(Da)
+        Jb,Kb = i2.get_j(Db),i2.get_k(Db)
+        Fa = h + Ja + Jb - Ka
+        Fb = h + Ja + Jb - Kb
+        orbea,ca = geigh(Fa,i1.S)
+        orbeb,cb = geigh(Fb,i1.S)
+        Energy += trace2(Fa,Da)/2 + trace2(Fb,Db)/2
+        print ("UHF: %d   %10.4f : %10.4f" % ((i+1),Energy,Enuke))
+        if np.isclose(Energy,Eold):
+            break
+        Eold = Energy
+    else:
+        print ("Warning: Maxiter %d hit in scf_simple" % maxiter)
+    return Energy,E,U
+
+
 if __name__ == '__main__':
     scf_simple(B12)
+    print ("LiH energy should be -7.8607")
     scf_simple(lih)
+    print ("H2O energy should be -74.9598")
     scf_simple(h2o)
-
+    print ("OH energy should be -73.3602")
+    scf_simple(oh)
+    print ("Li energy should be -7.3155")
+    scf_simple(li)

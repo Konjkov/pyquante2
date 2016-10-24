@@ -1,6 +1,8 @@
 from pyquante2.utils import dmat, trace2, geigh
 from pyquante2.grid.grid import grid
-from pyquante2.ints.integrals import onee_integrals, twoe_integrals
+rom pyquante2.ints.integrals import onee_integrals,twoe_integrals
+from pyquante2.utils import trace2, geigh
+from pyquante2.scf.iterators import SCFIterator,USCFIterator,AveragingIterator,ROHFIterator
 import numpy as np
 
 np.set_printoptions(threshold='nan', linewidth=10000)
@@ -19,6 +21,7 @@ class hamiltonian(object):
 class rhf(hamiltonian):
     """ RHF hamiltonian
     """
+
     name = 'RHF'
 
     def __init__(self, bfs, onee_factory=onee_integrals, twoe_factory=twoe_integrals):
@@ -43,14 +46,15 @@ class rhf(hamiltonian):
         return dmat(orbs, self.nocc)
 
 
-class rdft(rhf):
-    """Hamiltonian for DFT calculations. Adds a grid to RHF iterator."""
-    name = 'DFT'
-
-    def __init__(self, geo, bfs):
-        rhf.__init__(self, geo, bfs)
+class dft(rhf):
+    "Hamiltonian for DFT calculations. Adds a grid to RHF iterator."
+    def __init__(self,geo,bfs,xcname='lda',verbose=False):
+        rhf.__init__(self,geo,bfs)
         self.grid = grid(geo)
-        # make grid here.
+        self.xcname = xcname
+        self.grid.setbfamps(bfs)
+        self.verbose = verbose
+        return
 
     def fock(self, D):
         """ Fock matrix"""
@@ -199,6 +203,78 @@ class cuhf(uhf):
         Fa[c, v] = Fc[c, v]
         Fb[v, c] = Fc[v, c]
         return Fa, Fb, E
+
+
+class rohf(hamiltonian):
+    """Hamiltonian for ROHF calculations. This is the simple version from ???,
+    rather than WAG's version that also does GVB.
+
+    >>> from pyquante2.geo.samples import he, he_triplet
+    >>> from pyquante2.basis.basisset import basisset
+    >>> bfs = basisset(he,'6-31G**')
+    >>> he1 = rohf(he,bfs)
+    >>> ens = he1.converge()
+    >>> np.isclose(he1.energy,-2.855160702)
+    True
+    >>> he3 = rohf(he_triplet,bfs)
+    >>> ens = he3.converge()
+    >>> np.isclose(he3.energy,-1.3993077765340005)
+    True
+    """
+    name = 'ROHF'
+
+    def converge(self,iterator=ROHFIterator,**kwargs):
+        return hamiltonian.converge(self,iterator,**kwargs)
+
+    def update(self,Da,Db,orbs):
+        from pyquante2.utils import ao2mo
+        nalpha = self.geo.nup()
+        nbeta = self.geo.ndown()
+        norbs = len(orbs) # Da.shape[0]
+
+        E0 = self.geo.nuclear_repulsion()
+        h = self.i1.T + self.i1.V
+        E1 = 0.5*trace2(Da+Db,h)
+        Ja,Ka = self.i2.get_j(Da),self.i2.get_k(Da)
+        Jb,Kb = self.i2.get_j(Db),self.i2.get_k(Db)
+        Fa = h + Ja + Jb - Ka
+        Fb = h + Ja + Jb - Kb
+        E2 = 0.5*(trace2(Fa,Da)+trace2(Fb,Db))
+        self.energy = E0+E1+E2
+        #print (self.energy,E1,E2,E0)
+
+        Fa = ao2mo(Fa,orbs)
+        Fb = ao2mo(Fb,orbs)
+
+        # Building the approximate Fock matrices in the MO basis
+        F = 0.5*(Fa+Fb)
+        K = Fb-Fa
+
+        # The Fock matrix now looks like
+        #      F-K    |  F + K/2  |    F
+        #   ---------------------------------
+        #    F + K/2  |     F     |  F - K/2
+        #   ---------------------------------
+        #       F     |  F - K/2  |  F + K
+
+        # Make explicit slice objects to simplify this
+        do = slice(0,nbeta)
+        so = slice(nbeta,nalpha)
+        uo = slice(nalpha,norbs)
+        F[do,do] -= K[do,do]
+        F[uo,uo] += K[uo,uo]
+        F[do,so] += 0.5*K[do,so]
+        F[so,do] += 0.5*K[so,do]
+        F[so,uo] -= 0.5*K[so,uo]
+        F[uo,so] -= 0.5*K[uo,so]
+
+        E,cmo = np.linalg.eigh(F)
+        c = np.dot(orbs,cmo)
+
+        self.orbe = E
+        self.orbs = c
+
+        return c
 
 
 if __name__ == '__main__':

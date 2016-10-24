@@ -135,9 +135,14 @@ def trace2(A,B):
     "Return trace(AB) of matrices A and B"
     return np.sum(A*B)
 
-def dmat(c,nocc):
-    "Form the density matrix from the first nocc orbitals of c"
-    return np.dot(c[:,:nocc],c[:,:nocc].T)
+def dmat(c,nclosed,nopen=0):
+    """Form the density matrix from the first nclosed orbitals of c. If nopen != 0,
+    add in half the density matrix from the next nopen orbitals.
+    """
+    d = np.dot(c[:,:nclosed],c[:,:nclosed].T)
+    if nopen > 0:
+        d += 0.5*np.dot(c[:,nclosed:(nclosed+nopen)],c[:,nclosed:(nclosed+nopen)].T)
+    return d
 
 def symorth(S):
     "Symmetric orthogonalization"
@@ -164,6 +169,9 @@ def simx(A,B,transpose=False):
     if transpose:
         return np.dot(B,np.dot(A,B.T))
     return np.dot(B.T,np.dot(A,B))
+
+def ao2mo(H,C): return simx(H,C)
+def mo2ao(H,C,S): return simx(H,np.dot(S,C),transpose=True)
 
 def geigh(H,S):
     "Solve the generalized eigensystem Hc = ESc"

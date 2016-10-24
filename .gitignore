@@ -1,6 +1,9 @@
 build
 make.out
 profile.out
+.DS_Store
+*.so
+*.pyc
 *~
 *.png
 *.vtk
@@ -9,3 +12,4 @@ prof
 docs/_build
 .svn/*
 .idea/*
+cython/cbecke.c

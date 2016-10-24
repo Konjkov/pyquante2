@@ -38,6 +38,8 @@ if use_cython:
                   libraries=['int', 'deriv', 'r12'],
                   library_dirs=['/usr/lib'],
               )
+        Extension("pyquante2.cbecke",["cython/cbecke.pyx"],
+                   include_dirs=[np.get_include()])
         ]
 else:
     ext_modules += [

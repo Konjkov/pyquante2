@@ -1,7 +1,6 @@
 from guess import core_hamiltonian_rhf, core_hamiltonian_uhf, core_hamiltonian_rohf
 import numpy as np
 
-
 class SCFIterator(object):
     def __init__(self, H, guess=core_hamiltonian_rhf):
         self.H = H
@@ -73,6 +72,26 @@ class ROSCFIterator(object):
                 self.converged = True
                 break
 
+
+class ROHFIterator(SCFIterator):
+    def __init__(self,H,c=None,tol=1e-5,maxiters=100):
+        SCFIterator.__init__(self,H,c,tol,maxiters)
+        self.nup,self.ndown = self.H.geo.nup(),self.H.geo.ndown()
+        return
+
+    def __next__(self):
+        self.iterations += 1
+        if self.iterations > self.maxiters:
+            raise StopIteration
+        Dup = dmat(self.c,self.nup)
+        Ddown = dmat(self.c,self.ndown)
+        self.c = self.H.update(Dup,Ddown,self.c)
+        E = self.H.energy
+        if abs(E-self.Eold) < self.tol:
+            self.converged = True
+            raise StopIteration
+        self.Eold = E
+        return E
 
 class AveragingIterator(SCFIterator):
     def converge(self, fraction=0.5, tol=1e-7, maxiters=100):

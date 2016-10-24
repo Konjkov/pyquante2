@@ -47,6 +47,7 @@ class test_scf(unittest.TestCase):
             (1,  0.00000000,     4.00000000,    -0.36628549),
             ],
                       units='Angstrom')
+
         bfs = basisset(h4,'sto-3g')
         hamiltonian = rhf(bfs)
         iterator = SCFIterator(hamiltonian)
