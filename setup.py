@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 from distutils.extension import Extension
 import numpy as np
 
@@ -37,7 +37,7 @@ if use_cython:
                   include_dirs=['/usr/include/libint', '/usr/include/libderiv', '/usr/include/libr12', np.get_include()],
                   libraries=['int', 'deriv', 'r12'],
                   library_dirs=['/usr/lib'],
-              )
+              ),
         Extension("pyquante2.cbecke",["cython/cbecke.pyx"],
                    include_dirs=[np.get_include()])
         ]

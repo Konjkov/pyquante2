@@ -1,6 +1,6 @@
 from pyquante2.utils import dmat, trace2, geigh
 from pyquante2.grid.grid import grid
-rom pyquante2.ints.integrals import onee_integrals,twoe_integrals
+from pyquante2.ints.integrals import onee_integrals,twoe_integrals
 from pyquante2.utils import trace2, geigh
 from pyquante2.scf.iterators import SCFIterator,USCFIterator,AveragingIterator,ROHFIterator
 import numpy as np
